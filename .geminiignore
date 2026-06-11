@@ -1,0 +1,26 @@
+# ==========================================
+# EXCLUSIONES GLOBALES Y CACHÉ
+# ==========================================
+**/.DS_Store
+**/thumbs.db
+**/*.log
+
+# ==========================================
+# CONFIGURACIÓN PARA BACKEND (Node + Express)
+# ==========================================
+backend/node_modules/
+backend/dist/
+backend/build/
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# ==========================================
+# CONFIGURACIÓN PARA FRONTEND (React + Vite)
+# ==========================================
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/.vite/

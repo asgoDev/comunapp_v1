@@ -1,0 +1,20 @@
+# Dependencias pesadas
+node_modules/
+.npm/
+
+# Carpetas de producción / compilación
+dist/
+build/
+.next/
+.astro/
+out/
+
+# Archivos de entorno y bases de datos locales
+.env
+.env.local
+*.db
+*.sqlite
+
+# Multimedia y logs
+*.log
+public/assets/
