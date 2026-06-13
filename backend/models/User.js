@@ -35,7 +35,7 @@ const userSchema = new mongoose.Schema(
     },
     fechaNacimiento: {
       type: Date,
-      // required: [true, "La fecha de nacimiento es requerida"],
+      required: [true, "La fecha de nacimiento es requerida"],
     },
 
     // ── Acceso ────────────────────────────────────────────────────────────
