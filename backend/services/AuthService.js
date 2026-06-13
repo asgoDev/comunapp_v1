@@ -1,54 +1,55 @@
 import User from '../models/User.js';
-import { loginSchema } from '../validations/auth.js';
+import AppError from '../errors/AppError.js';
 import {
     generateAccessToken,
     generateRefreshToken,
     verifyRefreshToken,
 } from '../utils/jwt.utils.js';
 
+const PUBLIC_USER_FIELDS = 'id nombre apellido email role';
+
 class AuthService {
     /**
      * Autenticación de usuario con email/cédula y contraseña.
+     *
+     * req.body ya viene validado por el middleware validate(loginSchema),
+     * por lo que no se necesita .parse() aquí.
+     *
+     * SEGURIDAD — timing-safe:
+     * comparePassword siempre se ejecuta aunque el usuario no exista,
+     * para evitar user enumeration por diferencia de tiempo de respuesta.
      */
-    async login(loginData) {
-        // Validar input con Zod
-        const { identifier, password } = loginSchema.parse(loginData);
-
-        // Determinar si es cédula o email
+    async login({ identifier, password }) {
         const isCedula = /^[VE]-\d{6,9}$/i.test(identifier);
         const query = isCedula
             ? { cedula: identifier.toUpperCase() }
             : { email: identifier.toLowerCase() };
 
-        // Buscar usuario (incluir password explícitamente)
         const user = await User.findOne(query).select('+password');
 
-        if (!user) {
-            throw new Error('Credenciales inválidas.');
-        }
+        // Ejecutar siempre una comparación para igualar el tiempo de respuesta
+        const DUMMY_HASH = '$2b$12$eImiTXuWVxfM37uY4JANjQe5ds4vAMpN8BUDKPqO4yrIbmUxKKiJy';
+        const isMatch = user
+            ? await user.comparePassword(password)
+            : await import('bcryptjs').then(({ default: bcrypt }) =>
+                  bcrypt.compare(password, DUMMY_HASH)
+              );
 
-        // Verificar que el usuario esté activo
-        if (user.estado === 'inactivo') {
-            const err = new Error('Su cuenta está desactivada. Contacte al administrador.');
-            err.userId = user._id;
+        if (user?.estado === 'inactivo') {
+            const err = new AppError(
+                'Su cuenta está desactivada. Contacte al administrador.',
+                403,
+                'ACCOUNT_DISABLED'
+            );
+            err.userId = user._id; // para auditoría
             throw err;
         }
 
-        // Comparar password
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) {
-            const err = new Error('Credenciales inválidas.');
-            err.userId = user._id;
-            throw err;
+        if (!user || !isMatch) {
+            throw new AppError('Credenciales inválidas.', 401, 'INVALID_CREDENTIALS');
         }
 
-        // Payload del token (incluye role)
-        const tokenPayload = {
-            id: user._id,
-            role: user.role,
-        };
-
-        // Generar tokens
+        const tokenPayload = { id: user._id, role: user.role };
         const accessToken = generateAccessToken(tokenPayload);
         const refreshToken = generateRefreshToken(tokenPayload);
 
@@ -70,42 +71,51 @@ class AuthService {
      */
     async refresh(token) {
         if (!token) {
-            throw new Error('No se proporcionó refresh token.');
+            throw new AppError('No se proporcionó refresh token.', 401, 'MISSING_REFRESH_TOKEN');
         }
 
         let decoded;
         try {
             decoded = verifyRefreshToken(token);
-        } catch (error) {
-            throw new Error('Refresh token inválido o expirado.');
+        } catch (cause) {
+            const err = new AppError('Refresh token inválido o expirado.', 401, 'INVALID_REFRESH_TOKEN');
+            err.cause = cause;
+            throw err;
         }
 
-        // Verificar que el usuario aún exista y esté activo
         const user = await User.findById(decoded.id);
         if (!user || user.estado === 'inactivo') {
-            throw new Error('Usuario no encontrado o desactivado.');
+            throw new AppError('Usuario no encontrado o desactivado.', 401, 'USER_UNAVAILABLE');
         }
 
-        // Generar nuevo access token y refresh token
         const tokenPayload = { id: user._id, role: user.role };
-        const accessToken = generateAccessToken(tokenPayload);
-        const refreshToken = generateRefreshToken(tokenPayload);
-
         return {
-            accessToken,
-            refreshToken,
+            accessToken: generateAccessToken(tokenPayload),
+            refreshToken: generateRefreshToken(tokenPayload),
         };
     }
 
     /**
      * Obtiene el usuario autenticado actual.
+     * Solo proyecta campos públicos para no exponer datos internos.
      */
     async getMe(userId) {
-        const user = await User.findById(userId);
+        const user = await User.findById(userId).select(PUBLIC_USER_FIELDS);
         if (!user) {
-            throw new Error('Usuario no encontrado.');
+            throw new AppError('Usuario no encontrado.', 404, 'USER_NOT_FOUND');
         }
         return user;
+    }
+
+    /**
+     * Invalida un refresh token añadiéndolo a la blacklist.
+     * Requiere el modelo TokenBlacklist con TTL index.
+     */
+    async invalidateRefreshToken(token) {
+        const { createHash } = await import('crypto');
+        const { default: TokenBlacklist } = await import('../models/TokenBlacklist.js');
+        const hash = createHash('sha256').update(token).digest('hex');
+        await TokenBlacklist.create({ tokenHash: hash });
     }
 }
 
