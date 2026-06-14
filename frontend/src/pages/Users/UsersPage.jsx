@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 export default function UsersPage() {
   const navigate = useNavigate();
   const currentUser = useAuthStore((s) => s.user);
-  
+
   if (!currentUser || currentUser.role !== 'admin') {
     toast.error('No tiene permisos para acceder a esta sección.');
     return <Navigate to="/" replace />;
@@ -30,7 +30,7 @@ export default function UsersPage() {
     const filters = {};
     if (roleFilter) filters.role = roleFilter;
     if (estadoFilter) filters.estado = estadoFilter;
-    
+
     fetchUsers(currentPage, filters).catch((err) => {
       console.error(err);
       toast.error('Error al cargar la lista de usuarios');
@@ -41,11 +41,11 @@ export default function UsersPage() {
   const filteredUsers = users.filter((user) => {
     const term = searchQuery.toLowerCase().trim();
     if (!term) return true;
-    
+
     const fullName = `${user.nombre} ${user.apellido}`.toLowerCase();
     const email = (user.email || '').toLowerCase();
     const cedula = (user.cedula || '').toLowerCase();
-    
+
     return fullName.includes(term) || email.includes(term) || cedula.includes(term);
   });
 
@@ -58,7 +58,7 @@ export default function UsersPage() {
   // Toggle del estado de un usuario (activar / desactivar)
   const handleToggleEstado = async (user) => {
     if (!isAdmin) return;
-    
+
     if (user._id === currentUser._id) {
       toast.error('No puede modificar el estado de su propia cuenta.');
       return;
@@ -66,7 +66,7 @@ export default function UsersPage() {
 
     const nuevoEstado = user.estado === 'activo' ? 'inactivo' : 'activo';
     const actionLabel = nuevoEstado === 'activo' ? 'activar' : 'desactivar';
-    
+
     if (!window.confirm(`¿Está seguro de que desea ${actionLabel} a este usuario?`)) {
       return;
     }
@@ -94,8 +94,8 @@ export default function UsersPage() {
   // Badge estético para Roles
   const renderRoleBadge = (role) => {
     const styles = {
-      admin: 'bg-primary/10 text-primary border-primary/20',
-      user: 'bg-surface-container/60 text-on-surface border-outline-variant/10',
+      admin: 'uppercase bg-primary/10 text-primary border-primary/20',
+      usuario: 'uppercase bg-surface-container/60 text-on-surface border-outline-variant/10',
     };
 
     return (
@@ -110,11 +110,10 @@ export default function UsersPage() {
     const isActivo = estado === 'activo';
     return (
       <span
-        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-          isActivo
-            ? 'bg-primary/10 text-primary border-primary/20'
-            : 'bg-error-container/30 text-error border-error-container/40'
-        }`}
+        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${isActivo
+          ? 'bg-primary/10 text-primary border-primary/20'
+          : 'bg-error-container/30 text-error border-error-container/40'
+          }`}
       >
         <span className={`w-1.5 h-1.5 rounded-full ${isActivo ? 'bg-primary' : 'bg-error'}`} />
         {isActivo ? 'Activo' : 'Inactivo'}
@@ -132,7 +131,7 @@ export default function UsersPage() {
             Administración y control de accesos al sistema institucional.
           </p>
         </div>
-        
+
         {isAdmin && (
           <Button
             onClick={() => navigate('/usuarios/nuevo')}
@@ -263,11 +262,10 @@ export default function UsersPage() {
                               handleToggleEstado(user);
                             }}
                             disabled={user._id === currentUser._id}
-                            className={`p-1.5 rounded-lg border transition-all inline-flex items-center gap-1 cursor-pointer select-none active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
-                              user.estado === 'activo'
-                                ? 'border-error/20 text-error hover:bg-error/5'
-                                : 'border-primary/20 text-primary hover:bg-primary/5'
-                            }`}
+                            className={`p-1.5 rounded-lg border transition-all inline-flex items-center gap-1 cursor-pointer select-none active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${user.estado === 'activo'
+                              ? 'border-error/20 text-error hover:bg-error/5'
+                              : 'border-primary/20 text-primary hover:bg-primary/5'
+                              }`}
                             title={user.estado === 'activo' ? 'Desactivar Cuenta' : 'Activar Cuenta'}
                           >
                             <Icon name={user.estado === 'activo' ? 'block' : 'check_circle'} size="18px" />

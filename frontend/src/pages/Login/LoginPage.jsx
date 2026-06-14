@@ -45,7 +45,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         {/* Gradient Background */}
         {/* <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-container to-primary animate-gradient" /> */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#006a3bff,#006a3b9f),url('/iobpas_recep.webp')] bg-cover bg-[position:25%_center] bg-no-repeat blur-[1px]" />
+        <div className="absolute inset-0 bg-[#006a3bff] bg-cover bg-[position:25%_center] bg-no-repeat blur-[1px]" />
 
         {/* Pattern Overlay */}
         <div className="absolute inset-0 opacity-10">
