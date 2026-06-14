@@ -2,6 +2,383 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ══════════════════════════════════════════════
+   THEME: Default (Red / Blue base)
+   Applied via :root AND [data-theme="default"]
+   ══════════════════════════════════════════════ */
+:root,
+:root,
+[data-theme="default"] {
+  /* Primary (Rojo institucional) */
+  --color-primary: 179 38 30;
+  /* #B3261E */
+  --color-primary-container: 220 54 46;
+  /* #DC362E */
+  --color-on-primary: 255 255 255;
+  --color-on-primary-container: 255 251 255;
+
+  /* Secondary (Dorado corporativo) */
+  --color-secondary: 115 92 0;
+  /* #735C00 */
+  --color-secondary-container: 254 214 91;
+  /* #FED65B */
+  --color-on-secondary: 255 255 255;
+  --color-on-secondary-container: 116 92 0;
+  /* #745C00 */
+
+  /* Tertiary */
+  --color-tertiary: 117 91 0;
+  /* #755B00 */
+  --color-tertiary-container: 210 165 1;
+  /* #D2A501 */
+  --color-on-tertiary: 255 255 255;
+  --color-on-tertiary-container: 80 61 0;
+  /* #503D00 */
+
+  /* Fixed colors */
+  --color-primary-fixed: 255 180 171;
+  --color-primary-fixed-dim: 255 138 128;
+  --color-on-primary-fixed: 65 0 2;
+  --color-on-primary-fixed-variant: 140 29 24;
+
+  --color-secondary-fixed: 255 224 136;
+  --color-secondary-fixed-dim: 233 195 73;
+  --color-on-secondary-fixed: 36 26 0;
+  --color-on-secondary-fixed-variant: 87 69 0;
+
+  --color-tertiary-fixed: 255 223 144;
+  --color-tertiary-fixed-dim: 240 193 44;
+  --color-on-tertiary-fixed: 36 26 0;
+  --color-on-tertiary-fixed-variant: 88 68 0;
+
+  /* Surface */
+  --color-background: 250 248 255;
+  /* #FAF8FF */
+  --color-surface: 250 248 255;
+  --color-surface-bright: 250 248 255;
+
+  --color-surface-container-lowest: 255 255 255;
+  --color-surface-container-low: 242 243 255;
+  --color-surface-container: 234 237 255;
+  --color-surface-container-high: 227 231 255;
+  --color-surface-container-highest: 219 225 255;
+
+  --color-surface-dim: 207 217 255;
+  --color-surface-variant: 219 225 255;
+
+  /* Typography */
+  --color-on-background: 0 23 74;
+  /* #00174A */
+  --color-on-surface: 0 23 74;
+  /* #00174A */
+  --color-on-surface-variant: 63 73 65;
+  /* #3F4941 */
+
+  /* Borders */
+  --color-outline: 111 122 112;
+  --color-outline-variant: 190 202 190;
+
+  /* Inverse */
+  --color-inverse-surface: 13 44 110;
+  /* #0D2C6E */
+  --color-inverse-on-surface: 238 240 255;
+  --color-inverse-primary: 255 180 171;
+
+  /* Utility */
+  --color-surface-tint: 179 38 30;
+
+  /* Error */
+  --color-error: 186 26 26;
+  --color-error-container: 255 218 214;
+  --color-on-error: 255 255 255;
+  --color-on-error-container: 147 0 10;
+}
+
+/* ══════════════════════════════════════════════
+   THEME: Emerald
+   ══════════════════════════════════════════════ */
+[data-theme="emerald"] {
+  --color-tertiary-fixed: 255 223 144;
+  /* #ffdf90 */
+  --color-error: 186 26 26;
+  /* #ba1a1a */
+  --color-tertiary-container: 210 165 1;
+  /* #d2a501 */
+  --color-tertiary-fixed-dim: 240 193 44;
+  /* #f0c12c */
+
+  --color-on-surface-variant: 63 73 65;
+  /* #3f4941 */
+
+  --color-primary-container: 38 132 81;
+  /* #268451 */
+  --color-primary: 0 106 59;
+  /* #006a3b */
+
+  --color-tertiary: 117 91 0;
+  /* #755b00 */
+  --color-on-tertiary: 255 255 255;
+
+  --color-on-secondary-container: 116 92 0;
+  /* #745c00 */
+  --color-on-tertiary-container: 80 61 0;
+  /* #503d00 */
+
+  --color-on-error: 255 255 255;
+
+  --color-secondary-fixed-dim: 233 195 73;
+  /* #e9c349 */
+
+  --color-inverse-primary: 126 217 158;
+  /* #7ed99e */
+  --color-inverse-surface: 13 44 110;
+  /* #0d2c6e */
+
+  --color-on-background: 0 23 74;
+  /* #00174a */
+
+  --color-outline-variant: 190 202 190;
+  /* #becabe */
+
+  --color-surface-container-low: 242 243 255;
+  /* #f2f3ff */
+
+  --color-on-secondary: 255 255 255;
+
+  --color-on-surface: 0 23 74;
+  /* #00174a */
+
+  --color-background: 250 248 255;
+  /* #faf8ff */
+
+  --color-on-secondary-fixed: 36 26 0;
+
+  --color-surface-container-highest: 219 225 255;
+  --color-on-tertiary-fixed: 36 26 0;
+
+  --color-secondary-container: 254 214 91;
+  /* #fed65b */
+
+  --color-primary-fixed: 154 246 184;
+  /* #9af6b8 */
+
+  --color-surface-container: 234 237 255;
+  /* #eaedff */
+
+  --color-on-secondary-fixed-variant: 87 69 0;
+
+  --color-surface-container-lowest: 255 255 255;
+
+  --color-inverse-on-surface: 238 240 255;
+
+  --color-on-primary-fixed-variant: 0 82 45;
+
+  --color-surface-dim: 207 217 255;
+  --color-surface-container-high: 227 231 255;
+
+  --color-primary-fixed-dim: 126 217 158;
+
+  --color-surface-tint: 0 109 61;
+
+  --color-surface-variant: 219 225 255;
+
+  --color-secondary: 115 92 0;
+  /* #735c00 */
+
+  --color-surface-bright: 250 248 255;
+
+  --color-error-container: 255 218 214;
+
+  --color-on-primary: 255 255 255;
+
+  --color-on-error-container: 147 0 10;
+
+  --color-on-primary-fixed: 0 33 15;
+
+  --color-on-tertiary-fixed-variant: 88 68 0;
+
+  --color-on-primary-container: 246 255 244;
+
+  --color-secondary-fixed: 255 224 136;
+
+  --color-outline: 111 122 112;
+
+  --color-surface: 250 248 255;
+}
+
+/* ══════════════════════════════════════════════
+   THEME: Ocean
+   ══════════════════════════════════════════════ */
+[data-theme="ocean"] {
+  --color-primary: 10 101 204;
+  /* #0A65CC */
+  --color-primary-container: 48 128 224;
+  --color-on-primary: 255 255 255;
+  --color-on-primary-container: 245 250 255;
+
+  --color-secondary: 0 90 180;
+  --color-secondary-container: 212 227 255;
+  --color-on-secondary: 255 255 255;
+  --color-on-secondary-container: 0 45 95;
+
+  --color-tertiary: 106 86 125;
+  --color-tertiary-container: 242 218 255;
+  --color-on-tertiary: 255 255 255;
+  --color-on-tertiary-container: 38 19 55;
+
+  --color-primary-fixed: 212 227 255;
+  --color-primary-fixed-dim: 164 201 255;
+  --color-on-primary-fixed: 0 28 56;
+  --color-on-primary-fixed-variant: 0 73 160;
+
+  --color-background: 248 250 255;
+  --color-surface: 248 250 255;
+  --color-surface-bright: 248 250 255;
+
+  --color-surface-container-lowest: 255 255 255;
+  --color-surface-container-low: 241 244 249;
+  --color-surface-container: 233 237 244;
+  --color-surface-container-high: 227 232 239;
+  --color-surface-container-highest: 221 226 233;
+
+  --color-surface-dim: 207 212 219;
+  --color-surface-variant: 223 227 235;
+
+  --color-on-background: 0 23 74;
+  --color-on-surface: 0 23 74;
+  --color-on-surface-variant: 67 72 80;
+
+  --color-outline: 115 119 127;
+  --color-outline-variant: 195 199 207;
+
+  --color-inverse-surface: 13 44 110;
+  --color-inverse-on-surface: 232 240 255;
+  --color-inverse-primary: 164 201 255;
+
+  --color-surface-tint: 10 101 204;
+
+  --color-error: 186 26 26;
+  --color-error-container: 255 218 214;
+  --color-on-error: 255 255 255;
+  --color-on-error-container: 147 0 10;
+}
+
+/* ══════════════════════════════════════════════
+   THEME: Rose (NEW)
+   Warm rose / pink palette
+   ══════════════════════════════════════════════ */
+[data-theme="rose"] {
+  --color-primary: 168 32 74;
+  /* #A8204A */
+  --color-primary-container: 206 63 109;
+  --color-on-primary: 255 255 255;
+  --color-on-primary-container: 255 245 247;
+
+  --color-secondary: 138 60 83;
+  --color-secondary-container: 255 217 224;
+  --color-on-secondary: 255 255 255;
+  --color-on-secondary-container: 78 26 44;
+
+  --color-tertiary: 122 86 58;
+  --color-tertiary-container: 255 220 193;
+  --color-on-tertiary: 255 255 255;
+  --color-on-tertiary-container: 44 22 0;
+
+  --color-primary-fixed: 255 217 224;
+  --color-primary-fixed-dim: 255 177 196;
+  --color-on-primary-fixed: 63 0 22;
+  --color-on-primary-fixed-variant: 138 18 58;
+
+  --color-background: 255 248 249;
+  --color-surface: 255 248 249;
+  --color-surface-bright: 255 248 249;
+
+  --color-surface-container-lowest: 255 255 255;
+  --color-surface-container-low: 253 241 243;
+  --color-surface-container: 248 235 237;
+  --color-surface-container-high: 242 229 231;
+  --color-surface-container-highest: 236 223 226;
+
+  --color-surface-dim: 228 214 216;
+  --color-surface-variant: 241 222 226;
+
+  --color-on-background: 34 17 21;
+  --color-on-surface: 34 17 21;
+  --color-on-surface-variant: 82 68 72;
+
+  --color-outline: 132 115 119;
+  --color-outline-variant: 214 194 199;
+
+  --color-inverse-surface: 56 37 42;
+  --color-inverse-on-surface: 251 237 239;
+  --color-inverse-primary: 255 177 196;
+
+  --color-surface-tint: 168 32 74;
+
+  --color-error: 186 26 26;
+  --color-error-container: 255 218 214;
+  --color-on-error: 255 255 255;
+  --color-on-error-container: 147 0 10;
+}
+
+/* ══════════════════════════════════════════════
+   THEME: Slate (NEW)
+   Cool neutral / charcoal palette
+   ══════════════════════════════════════════════ */
+[data-theme="slate"] {
+  --color-primary: 70 86 116;
+  /* #465674 */
+  --color-primary-container: 104 122 155;
+  --color-on-primary: 255 255 255;
+  --color-on-primary-container: 247 249 255;
+
+  --color-secondary: 87 95 109;
+  --color-secondary-container: 219 227 243;
+  --color-on-secondary: 255 255 255;
+  --color-on-secondary-container: 20 28 40;
+
+  --color-tertiary: 113 85 109;
+  --color-tertiary-container: 252 215 245;
+  --color-on-tertiary: 255 255 255;
+  --color-on-tertiary-container: 42 19 40;
+
+  --color-primary-fixed: 214 227 255;
+  --color-primary-fixed-dim: 172 198 235;
+  --color-on-primary-fixed: 14 28 48;
+  --color-on-primary-fixed-variant: 58 74 100;
+
+  --color-background: 250 249 253;
+  --color-surface: 250 249 253;
+  --color-surface-bright: 250 249 253;
+
+  --color-surface-container-lowest: 255 255 255;
+  --color-surface-container-low: 243 243 248;
+  --color-surface-container: 237 238 243;
+  --color-surface-container-high: 231 232 237;
+  --color-surface-container-highest: 225 226 231;
+
+  --color-surface-dim: 218 218 223;
+  --color-surface-variant: 224 226 236;
+
+  --color-on-background: 26 28 32;
+  --color-on-surface: 26 28 32;
+  --color-on-surface-variant: 68 72 80;
+
+  --color-outline: 116 120 128;
+  --color-outline-variant: 196 199 208;
+
+  --color-inverse-surface: 47 49 53;
+  --color-inverse-on-surface: 241 240 244;
+  --color-inverse-primary: 172 198 235;
+
+  --color-surface-tint: 70 86 116;
+
+  --color-error: 186 26 26;
+  --color-error-container: 255 218 214;
+  --color-on-error: 255 255 255;
+  --color-on-error-container: 147 0 10;
+}
+
 /* ── Material Symbols ── */
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -21,12 +398,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #becabe;
+  background: rgb(var(--color-outline-variant));
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #6f7a70;
+  background: rgb(var(--color-outline));
 }
 
 /* ── Smooth transitions ── */
@@ -34,11 +411,28 @@
   scroll-behavior: smooth;
 }
 
+/* ── Theme transition ── */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
 /* ── Login background animation ── */
 @keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .animate-gradient {
@@ -52,6 +446,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -64,9 +459,20 @@
 
 /* ── Pulse ring for login ── */
 @keyframes pulse-ring {
-  0% { transform: scale(0.95); opacity: 0.5; }
-  50% { transform: scale(1); opacity: 0.3; }
-  100% { transform: scale(0.95); opacity: 0.5; }
+  0% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+
+  100% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
 }
 
 .animate-pulse-ring {

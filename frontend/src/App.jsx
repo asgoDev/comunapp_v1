@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
+import { useUiStore } from './stores/uiStore';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
 import LoginPage from './pages/Login/LoginPage';
@@ -14,7 +15,7 @@ function App() {
   const isCheckingAuth = useAuthStore((s) => s.isCheckingAuth);
   const sessionExpiry = useAuthStore((s) => s.sessionExpiry);
   const checkAuth = useAuthStore((s) => s.checkAuth);
-
+  const theme = useUiStore((s) => s.theme);
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -44,6 +45,10 @@ function App() {
     };
   }, [checkAuth, isAuthenticated]);
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
   if (isAuthenticated && isCheckingAuth) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background font-montserrat">
@@ -61,6 +66,7 @@ function App() {
       </div>
     );
   }
+
 
   return (
     <Routes>

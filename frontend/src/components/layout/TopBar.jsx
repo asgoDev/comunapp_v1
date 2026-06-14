@@ -1,15 +1,25 @@
+import { useState } from 'react';
 import { useAuthStore } from '../../stores/authStore';
+import { useUiStore } from '../../stores/uiStore';
 import Icon from '../ui/Icon';
 import Avatar from '../ui/Avatar';
 
-/**
- * Barra superior con datos del usuario autenticado.
- */
 export default function TopBar({ onMenuToggle }) {
   const user = useAuthStore((s) => s.user);
 
+  const theme = useUiStore((s) => s.theme);
+  const setTheme = useUiStore((s) => s.setTheme);
+
+  const [open, setOpen] = useState(false);
+
   const fullName = user ? `${user.nombre} ${user.apellido}` : '';
-  const roleLabel = user?.role === 'admin' ? 'Administrador' : user?.role === 'user' ? 'Usuario' : '';
+
+  const roleLabel =
+    user?.role === 'admin'
+      ? 'Administrador'
+      : user?.role === 'user'
+        ? 'Usuario'
+        : '';
 
   return (
     <header className="flex justify-between items-center w-full px-lg h-16 sticky top-0 z-30 bg-surface shadow-sm font-montserrat">
@@ -21,17 +31,63 @@ export default function TopBar({ onMenuToggle }) {
           <Icon name="menu" />
         </button>
 
-        <h1 className="text-headline-sm font-headline-sm text-primary">Dashboard</h1>
+        <h1 className="text-headline-sm font-headline-sm text-primary">
+          Dashboard
+        </h1>
       </div>
 
-      <div className="flex items-center gap-md">
-        <div className="flex items-center gap-sm cursor-pointer">
+      <div className="relative">
+        <button
+          onClick={() => setOpen(!open)}
+          className="flex items-center gap-sm"
+        >
           <div className="text-right hidden sm:block">
-            <p className="text-label-lg text-primary font-bold leading-tight">{fullName}</p>
-            <p className="text-[10px] text-on-surface-variant font-medium uppercase">{roleLabel}</p>
+            <p className="text-label-lg text-primary font-bold leading-tight">
+              {fullName}
+            </p>
+            <p className="text-[10px] text-on-surface-variant font-medium uppercase">
+              {roleLabel}
+            </p>
           </div>
+
           <Avatar name={fullName} size="md" />
-        </div>
+
+          <Icon
+            name={open ? 'expand_less' : 'expand_more'}
+            className="text-on-surface-variant"
+          />
+        </button>
+
+        {open && (
+          <div className="absolute right-0 mt-2 w-56 rounded-lg bg-surface border border-outline-variant shadow-lg overflow-hidden">
+            <div className="px-md py-sm border-b border-outline-variant">
+              <p className="text-label-lg text-primary font-semibold">
+                Tema visual
+              </p>
+            </div>
+
+            {[
+              { key: 'default', label: 'Default', emoji: '🔴' },
+              { key: 'emerald', label: 'Emerald', emoji: '🟢' },
+              { key: 'ocean', label: 'Ocean', emoji: '🔵' },
+              { key: 'rose', label: 'Rose', emoji: '🌸' },
+              { key: 'slate', label: 'Slate', emoji: '⚫' },
+            ].map((t) => (
+              <button
+                key={t.key}
+                onClick={() => {
+                  setTheme(t.key);
+                  setOpen(false);
+                }}
+                className={`w-full px-md py-sm text-left hover:bg-surface-container transition-colors ${
+                  theme === t.key ? 'text-primary font-semibold' : ''
+                }`}
+              >
+                {t.emoji} {t.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </header>
   );
