@@ -37,10 +37,9 @@ export default function UserFormPage() {
       cedula: '',
       email: '',
       password: '',
-      role: 'user',
+      role: 'usuario',
       telefono: '',
       direccion: '',
-      cargo: 'Usuario',
       fechaNacimiento: '',
     },
   });
@@ -73,7 +72,6 @@ export default function UserFormPage() {
             role: userData.role || '',
             telefono: userData.telefono || '',
             direccion: userData.direccion || '',
-            cargo: userData.cargo || '',
             fechaNacimiento: userData.fechaNacimiento
               ? new Date(userData.fechaNacimiento).toISOString().split('T')[0]
               : '',
@@ -98,6 +96,15 @@ export default function UserFormPage() {
         });
     }
   }, [id, isEditMode, fetchUserById, navigate, reset]);
+
+  const handleTelefonoChange = (e) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 11) val = val.slice(0, 11);
+    if (val.length > 4) {
+      val = `${val.slice(0, 4)}-${val.slice(4)}`;
+    }
+    e.target.value = val;
+  };
 
   const onSubmit = async (data) => {
     if (isReadOnly) return;
@@ -309,7 +316,7 @@ export default function UserFormPage() {
                 >
                   <option value="" disabled>Seleccione un rol...</option>
                   <option value="admin">Administrador</option>
-                  <option value="user">Usuario</option>
+                  <option value="usuario">Usuario</option>
                 </select>
                 {!isReadOnly && (
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
@@ -330,10 +337,10 @@ export default function UserFormPage() {
               label="Teléfono"
               type="tel"
               icon="phone"
-              placeholder="Ej. 04121234567"
+              placeholder="Ej. 0412-1234567"
               error={errors.telefono?.message}
               disabled={isReadOnly}
-              {...register('telefono')}
+              {...register('telefono', { onChange: handleTelefonoChange })}
             />
 
             {/* Fecha de Nacimiento */}
@@ -344,16 +351,6 @@ export default function UserFormPage() {
               error={errors.fechaNacimiento?.message}
               disabled={isReadOnly}
               {...register('fechaNacimiento')}
-            />
-
-            {/* Cargo */}
-            <Input
-              label="Cargo / Puesto de Trabajo"
-              icon="work"
-              placeholder="Ej. Coord. de Sistemas"
-              error={errors.cargo?.message}
-              disabled={isReadOnly}
-              {...register('cargo')}
             />
 
             {/* Dirección */}

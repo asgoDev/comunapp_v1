@@ -50,6 +50,10 @@ const role = z.enum(["admin", "usuario"], {
   errorMap: () => ({ message: "El rol debe ser admin o usuario" }),
 });
 
+const estado = z.enum(["activo", "inactivo"], {
+  errorMap: () => ({ message: "El estado debe ser activo o inactivo" }),
+});
+
 const telefono = z
   .string()
   .trim()
@@ -80,6 +84,7 @@ export const createUserSchema = z.object({
   role: role.optional(),
   telefono,
   direccion,
+  estado: estado.optional(),
 });
 
 /**
@@ -97,6 +102,7 @@ export const updateUserSchema = z
     role: role.optional(),
     telefono,
     direccion,
+    estado: estado.optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "Debe enviar al menos un campo para actualizar",

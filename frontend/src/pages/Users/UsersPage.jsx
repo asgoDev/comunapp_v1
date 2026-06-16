@@ -175,7 +175,7 @@ export default function UsersPage() {
             >
               <option value="">Todos los Roles</option>
               <option value="admin">Administrador</option>
-              <option value="user">Usuario</option>
+              <option value="usuario">Usuario</option>
             </select>
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
               <Icon name="arrow_drop_down" />

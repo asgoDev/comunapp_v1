@@ -379,6 +379,293 @@
   --color-on-error-container: 147 0 10;
 }
 
+/* ══════════════════════════════════════════════
+   THEME: Dark
+   Professional dark theme
+   ══════════════════════════════════════════════ */
+[data-theme="dark"] {
+  /* Primary */
+  --color-primary: 144 202 249;
+  /* #90CAF9 */
+  --color-primary-container: 30 58 95;
+  /* #1E3A5F */
+  --color-on-primary: 0 32 60;
+  --color-on-primary-container: 220 240 255;
+
+  /* Secondary */
+  --color-secondary: 200 200 200;
+  --color-secondary-container: 60 60 60;
+  --color-on-secondary: 20 20 20;
+  --color-on-secondary-container: 240 240 240;
+
+  /* Tertiary */
+  --color-tertiary: 255 183 77;
+  /* #FFB74D */
+  --color-tertiary-container: 80 52 0;
+  --color-on-tertiary: 50 28 0;
+  --color-on-tertiary-container: 255 224 178;
+
+  /* Fixed */
+  --color-primary-fixed: 187 222 251;
+  --color-primary-fixed-dim: 144 202 249;
+  --color-on-primary-fixed: 0 32 60;
+  --color-on-primary-fixed-variant: 30 58 95;
+
+  --color-secondary-fixed: 220 220 220;
+  --color-secondary-fixed-dim: 180 180 180;
+  --color-on-secondary-fixed: 30 30 30;
+  --color-on-secondary-fixed-variant: 80 80 80;
+
+  --color-tertiary-fixed: 255 224 178;
+  --color-tertiary-fixed-dim: 255 183 77;
+  --color-on-tertiary-fixed: 50 28 0;
+  --color-on-tertiary-fixed-variant: 80 52 0;
+
+  /* Background */
+  --color-background: 15 23 42;
+  /* #0F172A */
+
+  --color-surface: 15 23 42;
+  --color-surface-bright: 30 41 59;
+
+  --color-surface-container-lowest: 15 23 42;
+  --color-surface-container-low: 30 41 59;
+  --color-surface-container: 51 65 85;
+  --color-surface-container-high: 71 85 105;
+  --color-surface-container-highest: 100 116 139;
+
+  --color-surface-dim: 10 15 30;
+  --color-surface-variant: 51 65 85;
+
+  /* Typography */
+  --color-on-background: 241 245 249;
+  /* #F1F5F9 */
+
+  --color-on-surface: 241 245 249;
+  --color-on-surface-variant: 203 213 225;
+  /* #CBD5E1 */
+
+  /* Borders */
+  --color-outline: 148 163 184;
+  /* #94A3B8 */
+  --color-outline-variant: 71 85 105;
+  /* #475569 */
+
+  /* Inverse */
+  --color-inverse-surface: 241 245 249;
+  --color-inverse-on-surface: 15 23 42;
+  --color-inverse-primary: 30 58 95;
+
+  /* Utility */
+  --color-surface-tint: 144 202 249;
+
+  /* Error */
+  --color-error: 255 138 128;
+  --color-error-container: 120 20 20;
+  --color-on-error: 60 0 0;
+  --color-on-error-container: 255 218 214;
+}
+
+/* ══════════════════════════════════════════════
+   THEME: Midnight
+   Modern dark blue / cyber style
+   ══════════════════════════════════════════════ */
+[data-theme="midnight"] {
+
+  /* Primary */
+  --color-primary: 56 189 248;
+  /* #38BDF8 */
+  --color-primary-container: 8 47 73;
+  /* #082F49 */
+  --color-on-primary: 0 25 40;
+  --color-on-primary-container: 224 242 254;
+
+  /* Secondary */
+  --color-secondary: 129 140 248;
+  /* #818CF8 */
+  --color-secondary-container: 49 46 129;
+  /* #312E81 */
+  --color-on-secondary: 255 255 255;
+  --color-on-secondary-container: 224 231 255;
+
+  /* Tertiary */
+  --color-tertiary: 45 212 191;
+  /* #2DD4BF */
+  --color-tertiary-container: 17 94 89;
+  /* #115E59 */
+  --color-on-tertiary: 255 255 255;
+  --color-on-tertiary-container: 204 251 241;
+
+  /* Fixed */
+  --color-primary-fixed: 186 230 253;
+  --color-primary-fixed-dim: 125 211 252;
+  --color-on-primary-fixed: 8 47 73;
+  --color-on-primary-fixed-variant: 14 116 144;
+
+  --color-secondary-fixed: 224 231 255;
+  --color-secondary-fixed-dim: 165 180 252;
+  --color-on-secondary-fixed: 30 27 75;
+  --color-on-secondary-fixed-variant: 67 56 202;
+
+  --color-tertiary-fixed: 204 251 241;
+  --color-tertiary-fixed-dim: 94 234 212;
+  --color-on-tertiary-fixed: 19 78 74;
+  --color-on-tertiary-fixed-variant: 15 118 110;
+
+  /* Background */
+  --color-background: 3 7 18;
+  /* #030712 */
+
+  --color-surface: 3 7 18;
+  --color-surface-bright: 15 23 42;
+
+  --color-surface-container-lowest: 3 7 18;
+  --color-surface-container-low: 15 23 42;
+  --color-surface-container: 30 41 59;
+  --color-surface-container-high: 51 65 85;
+  --color-surface-container-highest: 71 85 105;
+
+  --color-surface-dim: 2 6 23;
+  --color-surface-variant: 30 41 59;
+
+  /* Typography */
+  --color-on-background: 248 250 252;
+  /* #F8FAFC */
+
+  --color-on-surface: 248 250 252;
+  --color-on-surface-variant: 148 163 184;
+  /* #94A3B8 */
+
+  /* Borders */
+  --color-outline: 100 116 139;
+  /* #64748B */
+  --color-outline-variant: 51 65 85;
+  /* #334155 */
+
+  /* Inverse */
+  --color-inverse-surface: 248 250 252;
+  --color-inverse-on-surface: 3 7 18;
+  --color-inverse-primary: 56 189 248;
+
+  /* Utility */
+  --color-surface-tint: 56 189 248;
+
+  /* Error */
+  --color-error: 248 113 113;
+  /* #F87171 */
+  --color-error-container: 127 29 29;
+  /* #7F1D1D */
+  --color-on-error: 255 255 255;
+  --color-on-error-container: 254 226 226;
+}
+
+/* ══════════════════════════════════════════════
+   THEME: Matrix
+   Black + Neon Green
+   ══════════════════════════════════════════════ */
+[data-theme="matrix"] {
+
+  /* Primary */
+  --color-primary: 0 255 65;
+  /* #00FF41 */
+
+  --color-primary-container: 0 60 15;
+  /* #003C0F */
+
+  --color-on-primary: 0 15 0;
+  --color-on-primary-container: 180 255 200;
+
+  /* Secondary */
+  --color-secondary: 0 220 90;
+  /* #00DC5A */
+
+  --color-secondary-container: 0 45 12;
+  /* #002D0C */
+
+  --color-on-secondary: 0 15 0;
+  --color-on-secondary-container: 180 255 200;
+
+  /* Tertiary */
+  --color-tertiary: 120 255 120;
+  /* #78FF78 */
+
+  --color-tertiary-container: 0 50 0;
+  /* #003200 */
+
+  --color-on-tertiary: 0 15 0;
+  --color-on-tertiary-container: 210 255 210;
+
+  /* Fixed */
+  --color-primary-fixed: 150 255 170;
+  --color-primary-fixed-dim: 0 255 65;
+  --color-on-primary-fixed: 0 20 0;
+  --color-on-primary-fixed-variant: 0 90 20;
+
+  --color-secondary-fixed: 150 255 170;
+  --color-secondary-fixed-dim: 0 220 90;
+  --color-on-secondary-fixed: 0 20 0;
+  --color-on-secondary-fixed-variant: 0 90 20;
+
+  --color-tertiary-fixed: 180 255 180;
+  --color-tertiary-fixed-dim: 120 255 120;
+  --color-on-tertiary-fixed: 0 20 0;
+  --color-on-tertiary-fixed-variant: 0 90 20;
+
+  /* Background */
+  --color-background: 0 0 0;
+  /* #000000 */
+
+  --color-surface: 5 5 5;
+  /* #050505 */
+
+  --color-surface-bright: 15 15 15;
+  /* #0F0F0F */
+
+  --color-surface-container-lowest: 0 0 0;
+  --color-surface-container-low: 10 10 10;
+  --color-surface-container: 18 18 18;
+  --color-surface-container-high: 25 25 25;
+  --color-surface-container-highest: 35 35 35;
+
+  --color-surface-dim: 0 0 0;
+  --color-surface-variant: 20 20 20;
+
+  /* Typography */
+  --color-on-background: 0 255 65;
+  /* #00FF41 */
+
+  --color-on-surface: 0 255 65;
+  /* #00FF41 */
+
+  --color-on-surface-variant: 120 255 120;
+  /* #78FF78 */
+
+  /* Borders */
+  --color-outline: 0 130 40;
+  /* #008228 */
+
+  --color-outline-variant: 0 70 20;
+  /* #004614 */
+
+  /* Inverse */
+  --color-inverse-surface: 0 255 65;
+  --color-inverse-on-surface: 0 0 0;
+  --color-inverse-primary: 0 255 65;
+
+  /* Utility */
+  --color-surface-tint: 0 255 65;
+
+  /* Error */
+  --color-error: 255 60 60;
+  /* #FF3C3C */
+
+  --color-error-container: 80 0 0;
+  /* #500000 */
+
+  --color-on-error: 255 255 255;
+  --color-on-error-container: 255 200 200;
+}
+
 /* ── Material Symbols ── */
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;

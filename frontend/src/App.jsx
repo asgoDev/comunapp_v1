@@ -9,6 +9,7 @@ import DashboardPage from './pages/Dashboard/DashboardPage';
 import NotFoundPage from './pages/NotFoundPage';
 import UsersPage from './pages/Users/UsersPage';
 import UserFormPage from './pages/Users/UserFormPage';
+import AuditoriaPage from './pages/Auditoria/AuditoriaPage';
 
 function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -81,6 +82,7 @@ function App() {
           <Route path="usuarios" element={<UsersPage />} />
           <Route path="usuarios/nuevo" element={<UserFormPage />} />
           <Route path="usuarios/:id" element={<UserFormPage />} />
+          <Route path="auditoria" element={<AuditoriaPage />} />
         </Route>
       </Route>
 

@@ -17,7 +17,7 @@ export default function TopBar({ onMenuToggle }) {
   const roleLabel =
     user?.role === 'admin'
       ? 'Administrador'
-      : user?.role === 'user'
+      : user?.role === 'usuario'
         ? 'Usuario'
         : '';
 
@@ -72,6 +72,9 @@ export default function TopBar({ onMenuToggle }) {
               { key: 'ocean', label: 'Ocean', emoji: '🔵' },
               { key: 'rose', label: 'Rose', emoji: '🌸' },
               { key: 'slate', label: 'Slate', emoji: '⚫' },
+              { key: 'dark', label: 'Dark', emoji: '🌙' },
+              { key: 'midnight', label: 'Midnight', emoji: '🌃' },
+              { key: 'matrix', label: 'Matrix', emoji: '💻' },
             ].map((t) => (
               <button
                 key={t.key}
@@ -79,9 +82,8 @@ export default function TopBar({ onMenuToggle }) {
                   setTheme(t.key);
                   setOpen(false);
                 }}
-                className={`w-full px-md py-sm text-left hover:bg-surface-container transition-colors ${
-                  theme === t.key ? 'text-primary font-semibold' : ''
-                }`}
+                className={`w-full px-md py-sm text-left hover:bg-surface-container transition-colors ${theme === t.key ? 'text-primary font-semibold' : ''
+                  }`}
               >
                 {t.emoji} {t.label}
               </button>

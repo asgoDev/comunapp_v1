@@ -88,10 +88,10 @@ export default function DashboardPage() {
     },
     {
       icon: 'shield',
-      title: 'Seguridad',
-      desc: 'JWT, cookies y auditoría',
-      path: '/',
-      adminOnly: false,
+      title: 'Auditoría',
+      desc: 'Registro de acciones del sistema',
+      path: '/auditoria',
+      adminOnly: true,
     },
   ].filter((action) => !action.adminOnly || user?.role === 'admin');
 
@@ -111,7 +111,7 @@ export default function DashboardPage() {
           </div>
           <div className="hidden md:flex items-center gap-2 bg-white/15 px-4 py-2 rounded-lg backdrop-blur-sm">
             <Icon name="verified_user" size="20px" />
-            <span className="text-label-lg font-bold uppercase">{user?.cargo || user?.role}</span>
+            <span className="text-label-lg font-bold uppercase">{user?.role}</span>
           </div>
         </div>
       </div>

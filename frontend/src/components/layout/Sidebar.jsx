@@ -75,25 +75,47 @@ export default function Sidebar({ isOpen, onClose }) {
           ))}
 
           {user?.role === 'admin' && (
-            <NavLink
-              to="/usuarios"
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center gap-md px-md py-sm font-label-lg text-label-lg
-                 transition-all duration-200 cursor-pointer rounded-lg
-                 ${isActive
-                  ? 'bg-secondary-container/20 text-primary border-l-4 border-secondary'
-                  : 'text-on-surface-variant hover:bg-primary-container/10 hover:text-primary active:translate-x-1'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon name="admin_panel_settings" filled={isActive} />
-                  <span>Usuarios</span>
-                </>
-              )}
-            </NavLink>
+            <>
+              <NavLink
+                to="/usuarios"
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `flex items-center gap-md px-md py-sm font-label-lg text-label-lg
+                   transition-all duration-200 cursor-pointer rounded-lg
+                   ${isActive
+                    ? 'bg-secondary-container/20 text-primary border-l-4 border-secondary'
+                    : 'text-on-surface-variant hover:bg-primary-container/10 hover:text-primary active:translate-x-1'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon name="admin_panel_settings" filled={isActive} />
+                    <span>Usuarios</span>
+                  </>
+                )}
+              </NavLink>
+
+              <NavLink
+                to="/auditoria"
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `flex items-center gap-md px-md py-sm font-label-lg text-label-lg
+                   transition-all duration-200 cursor-pointer rounded-lg
+                   ${isActive
+                    ? 'bg-secondary-container/20 text-primary border-l-4 border-secondary'
+                    : 'text-on-surface-variant hover:bg-primary-container/10 hover:text-primary active:translate-x-1'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon name="history" filled={isActive} />
+                    <span>Auditoría</span>
+                  </>
+                )}
+              </NavLink>
+            </>
           )}
         </nav>
 

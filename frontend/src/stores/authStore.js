@@ -4,7 +4,7 @@ import { authService } from '../services/authService';
 
 export const useAuthStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
       isLoading: false,
@@ -34,7 +34,8 @@ export const useAuthStore = create(
 
       logout: async () => {
         try {
-          await authService.logout();
+          const token = get().refreshToken;
+          await authService.logout(token);
         } catch {
           // Continuar con logout local aunque falle el servidor
         } finally {
