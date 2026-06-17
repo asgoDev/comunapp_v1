@@ -74,6 +74,15 @@ class AuthService {
             throw new AppError('No se proporcionó refresh token.', 401, 'MISSING_REFRESH_TOKEN');
         }
 
+        const { createHash } = await import('crypto');
+        const { default: TokenBlacklist } = await import('./auth.model.js');
+        const hash = createHash('sha256').update(token).digest('hex');
+        const isBlacklisted = await TokenBlacklist.exists({ tokenHash: hash });
+        
+        if (isBlacklisted) {
+            throw new AppError('El token de sesión ha sido revocado.', 401, 'REVOKED_REFRESH_TOKEN');
+        }
+
         let decoded;
         try {
             decoded = verifyRefreshToken(token);
@@ -115,7 +124,13 @@ class AuthService {
         const { createHash } = await import('crypto');
         const { default: TokenBlacklist } = await import('./auth.model.js');
         const hash = createHash('sha256').update(token).digest('hex');
-        await TokenBlacklist.create({ tokenHash: hash });
+        try {
+            await TokenBlacklist.create({ tokenHash: hash });
+        } catch (error) {
+            if (error.code !== 11000) {
+                throw error;
+            }
+        }
     }
 }
 

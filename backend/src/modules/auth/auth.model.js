@@ -5,17 +5,17 @@
  * y un TTL igual a la expiración máxima del refresh token, para que
  * MongoDB limpie automáticamente los registros expirados.
  *
- * Añadir en AuthService.invalidateRefreshToken():
+ * Añadir en auth.service.invalidateRefreshToken():
  *
  *   import crypto from 'crypto';
- *   import TokenBlacklist from '../models/TokenBlacklist.js';
+ *   import TokenBlacklist from './auth.model.js';
  *
  *   async invalidateRefreshToken(token) {
  *       const hash = crypto.createHash('sha256').update(token).digest('hex');
  *       await TokenBlacklist.create({ tokenHash: hash });
  *   }
  *
- * Y en AuthService.refresh(), antes de emitir nuevos tokens:
+ * Y en auth.service.refresh(), antes de emitir nuevos tokens:
  *
  *   const hash = crypto.createHash('sha256').update(token).digest('hex');
  *   const revoked = await TokenBlacklist.exists({ tokenHash: hash });
