@@ -32,7 +32,7 @@ export default function TopBar({ onMenuToggle }) {
         </button>
 
         <h1 className="text-headline-sm font-headline-sm text-primary">
-          Dashboard
+          ComunApp
         </h1>
       </div>
 

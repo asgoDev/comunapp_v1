@@ -21,7 +21,7 @@ export default function AppLayout() {
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
         <TopBar onMenuToggle={toggleSidebar} />
 
-        <div className="flex-1 overflow-y-auto p-lg">
+        <div className="flex-1 overflow-y-auto p-lg bg-surface-container">
           <Outlet />
         </div>
       </main>
