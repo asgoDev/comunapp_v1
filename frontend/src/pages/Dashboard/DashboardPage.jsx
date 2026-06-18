@@ -105,8 +105,7 @@ export default function DashboardPage() {
               {user?.nombre} {user?.apellido}
             </h1>
             <p className="text-body-md text-white/70 max-w-lg">
-              Bienvenido a la plantilla full-stack con autenticación JWT, gestión de usuarios y
-              auditoría de acciones.
+              Bienvenido a <span className='font-bold'>ComunApp</span>, la plataforma para gestionar tu comunidad.
             </p>
           </div>
           <div className="hidden md:flex items-center gap-2 bg-white/15 px-4 py-2 rounded-lg backdrop-blur-sm">

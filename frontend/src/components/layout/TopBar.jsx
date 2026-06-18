@@ -52,44 +52,22 @@ export default function TopBar({ onMenuToggle }) {
 
           <Avatar name={fullName} size="md" />
 
-          <Icon
+          {/* <Icon
             name={open ? 'expand_less' : 'expand_more'}
             className="text-on-surface-variant"
-          />
+          /> */}
         </button>
 
-        {open && (
+        {/* {open && (
           <div className="absolute right-0 mt-2 w-56 rounded-lg bg-surface border border-outline-variant shadow-lg overflow-hidden">
             <div className="px-md py-sm border-b border-outline-variant">
               <p className="text-label-lg text-primary font-semibold">
-                Tema visual
+                opciones
               </p>
             </div>
 
-            {[
-              { key: 'default', label: 'Default', emoji: '🔴' },
-              { key: 'emerald', label: 'Emerald', emoji: '🟢' },
-              { key: 'ocean', label: 'Ocean', emoji: '🔵' },
-              { key: 'rose', label: 'Rose', emoji: '🌸' },
-              { key: 'slate', label: 'Slate', emoji: '⚫' },
-              { key: 'dark', label: 'Dark', emoji: '🌙' },
-              { key: 'midnight', label: 'Midnight', emoji: '🌃' },
-              { key: 'matrix', label: 'Matrix', emoji: '💻' },
-            ].map((t) => (
-              <button
-                key={t.key}
-                onClick={() => {
-                  setTheme(t.key);
-                  setOpen(false);
-                }}
-                className={`w-full px-md py-sm text-left hover:bg-surface-container transition-colors ${theme === t.key ? 'text-primary font-semibold' : ''
-                  }`}
-              >
-                {t.emoji} {t.label}
-              </button>
-            ))}
           </div>
-        )}
+        )} */}
       </div>
     </header>
   );
