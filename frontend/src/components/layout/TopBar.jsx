@@ -17,9 +17,11 @@ export default function TopBar({ onMenuToggle }) {
   const roleLabel =
     user?.role === 'admin'
       ? 'Administrador'
-      : user?.role === 'usuario'
-        ? 'Usuario'
-        : '';
+      : user?.role === 'JEFE_COMUNIDAD'
+        ? 'Jefe de Comunidad'
+        : user?.role === 'LIDER_CALLE'
+          ? 'Líder de Calle'
+          : '';
 
   return (
     <header className="flex justify-between items-center w-full px-lg h-16 sticky top-0 z-30 bg-surface shadow-sm font-montserrat">

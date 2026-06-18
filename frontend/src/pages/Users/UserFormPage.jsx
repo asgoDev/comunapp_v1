@@ -4,20 +4,26 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../../stores/authStore';
 import { useUserStore } from '../../stores/userStore';
+import { useComunidadStore } from '../../stores/comunidadStore';
 import { createUserSchema, updateUserSchema } from '../../validations/user.js';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
 
+// Roles que requieren comunidad asignada
+const ROLES_CON_COMUNIDAD = ['JEFE_COMUNIDAD', 'LIDER_CALLE'];
+// Roles que requieren calle asignada (además de comunidad)
+const ROLES_CON_CALLE = ['LIDER_CALLE'];
+
 export default function UserFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const currentUser = useAuthStore((s) => s.user);
   const { createUser, updateUser, fetchUserById, isLoading } = useUserStore();
+  const { comunidades, fetchComunidades } = useComunidadStore();
 
   const isEditMode = !!id;
-  const isReadOnly = false;
 
   const [cedulaTipo, setCedulaTipo] = useState('V');
   const [cedulaNum, setCedulaNum] = useState('');
@@ -27,6 +33,7 @@ export default function UserFormPage() {
     handleSubmit,
     setValue,
     reset,
+    watch,
     formState: { errors },
     setError,
   } = useForm({
@@ -37,29 +44,54 @@ export default function UserFormPage() {
       cedula: '',
       email: '',
       password: '',
-      role: 'usuario',
+      role: '',
       telefono: '',
       direccion: '',
       fechaNacimiento: '',
+      comunidad: '',
+      calle: '',
     },
   });
+
+  // Observar el rol seleccionado para mostrar campos condicionales
+  const selectedRole = watch('role');
+  const showComunidad = ROLES_CON_COMUNIDAD.includes(selectedRole);
+  const showCalle = ROLES_CON_CALLE.includes(selectedRole);
 
   if (!currentUser || currentUser.role !== 'admin') {
     toast.error('No tiene permisos para acceder a esta sección.');
     return <Navigate to="/" replace />;
   }
 
+  // Cargar lista de comunidades activas al montar
+  useEffect(() => {
+    fetchComunidades(1, { limit: 200 }).catch(() => {
+      toast.error('No se pudo cargar la lista de comunidades.');
+    });
+  }, [fetchComunidades]);
+
   // Sincronizar la cédula de los estados locales al campo de react-hook-form
   useEffect(() => {
+    if (isEditMode) return; // En edición la cédula está deshabilitada
     const cleanNum = cedulaNum.trim();
     if (cleanNum) {
       setValue('cedula', `${cedulaTipo}-${cleanNum}`, { shouldValidate: true });
     } else {
       setValue('cedula', '');
     }
-  }, [cedulaTipo, cedulaNum, setValue]);
+  }, [cedulaTipo, cedulaNum, setValue, isEditMode]);
 
-  // Cargar información del usuario en modo edición/lectura
+  // Limpiar campos territoriales cuando el rol cambia y ya no los requiere
+  useEffect(() => {
+    if (!showComunidad) {
+      setValue('comunidad', '', { shouldValidate: false });
+      setValue('calle', '', { shouldValidate: false });
+    } else if (!showCalle) {
+      setValue('calle', '', { shouldValidate: false });
+    }
+  }, [selectedRole, showComunidad, showCalle, setValue]);
+
+  // Cargar información del usuario en modo edición
   useEffect(() => {
     if (isEditMode) {
       fetchUserById(id)
@@ -68,17 +100,19 @@ export default function UserFormPage() {
             nombre: userData.nombre || '',
             apellido: userData.apellido || '',
             email: userData.email || '',
-            password: '', // Vacío por seguridad
+            password: '',
             role: userData.role || '',
             telefono: userData.telefono || '',
             direccion: userData.direccion || '',
             fechaNacimiento: userData.fechaNacimiento
               ? new Date(userData.fechaNacimiento).toISOString().split('T')[0]
               : '',
-            cedula: userData.cedula || '',
+            // La cédula NO se incluye en el reset porque no es editable
+            comunidad: userData.comunidad?._id || userData.comunidad || '',
+            calle: userData.calle || '',
           });
 
-          // Desglosar cédula en estados locales
+          // Rellenar los estados de la cédula solo para mostrarla (disabled)
           if (userData.cedula) {
             const parts = userData.cedula.split('-');
             if (parts.length === 2) {
@@ -107,8 +141,6 @@ export default function UserFormPage() {
   };
 
   const onSubmit = async (data) => {
-    if (isReadOnly) return;
-
     try {
       const userData = { ...data };
 
@@ -116,6 +148,20 @@ export default function UserFormPage() {
       if (isEditMode && !userData.password) {
         delete userData.password;
       }
+
+      // Limpiar campos territoriales si el rol no los requiere
+      if (!ROLES_CON_COMUNIDAD.includes(userData.role)) {
+        delete userData.comunidad;
+        delete userData.calle;
+      } else if (!ROLES_CON_CALLE.includes(userData.role)) {
+        delete userData.calle;
+      }
+
+      // Limpiar strings vacíos opcionales
+      if (!userData.comunidad) delete userData.comunidad;
+      if (!userData.calle) delete userData.calle;
+      if (!userData.telefono) delete userData.telefono;
+      if (!userData.direccion) delete userData.direccion;
 
       if (isEditMode) {
         await updateUser(id, userData);
@@ -137,21 +183,17 @@ export default function UserFormPage() {
     }
   };
 
-  // Títulos dinámicos según el modo
   const getPageTitle = () => {
-    if (isReadOnly) return 'Detalles del Usuario';
     if (isEditMode) return 'Actualizar Información del Usuario';
     return 'Registro de Nuevo Usuario';
   };
 
   const getPageSubtitle = () => {
-    if (isReadOnly) return 'Visualización detallada de la información de usuario.';
     if (isEditMode) return 'Modifique los campos necesarios para actualizar la cuenta.';
     return 'Complete todos los campos para crear una cuenta con privilegios en la plataforma.';
   };
 
   const getPageIcon = () => {
-    if (isReadOnly) return 'visibility';
     if (isEditMode) return 'manage_accounts';
     return 'person_add';
   };
@@ -185,6 +227,12 @@ export default function UserFormPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-lg space-y-md">
+
+          {/* ── Sección: Identidad ─────────────────────────────────────── */}
+          <p className="text-label-lg text-on-surface-variant font-semibold uppercase tracking-wider pb-xs border-b border-outline-variant/20">
+            Datos Personales
+          </p>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
 
             {/* Nombre */}
@@ -193,8 +241,7 @@ export default function UserFormPage() {
               icon="person"
               placeholder="Ej. Juan"
               error={errors.nombre?.message}
-              disabled={isReadOnly}
-              required={!isReadOnly}
+              required
               {...register('nombre')}
             />
 
@@ -204,29 +251,31 @@ export default function UserFormPage() {
               icon="person"
               placeholder="Ej. Pérez"
               error={errors.apellido?.message}
-              disabled={isReadOnly}
-              required={!isReadOnly}
+              required
               {...register('apellido')}
             />
 
             {/* Cédula Combinada */}
             <div className="space-y-1">
               <label className="block text-label-lg font-label-lg text-on-surface-variant">
-                Cédula {!isReadOnly && <span className="text-error font-bold">*</span>}
+                Cédula {!isEditMode && <span className="text-error font-bold">*</span>}
+                {isEditMode && (
+                  <span className="ml-2 text-xs text-on-surface-variant/60 font-normal">(no editable)</span>
+                )}
               </label>
               <div className="flex gap-xs">
                 {/* Selector V / E */}
                 <div className="relative flex-shrink-0">
                   <select
                     value={cedulaTipo}
-                    onChange={(e) => !isReadOnly && setCedulaTipo(e.target.value)}
-                    disabled={isReadOnly}
+                    onChange={(e) => !isEditMode && setCedulaTipo(e.target.value)}
+                    disabled={isEditMode}
                     className="h-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-3 pr-8 text-body-md text-on-surface font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <option value="V">V</option>
                     <option value="E">E</option>
                   </select>
-                  {!isReadOnly && (
+                  {!isEditMode && (
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
                       <Icon name="arrow_drop_down" />
                     </span>
@@ -243,9 +292,9 @@ export default function UserFormPage() {
                     inputMode="numeric"
                     placeholder="12345678"
                     value={cedulaNum}
-                    disabled={isReadOnly}
+                    disabled={isEditMode}
                     onChange={(e) => {
-                      if (isReadOnly) return;
+                      if (isEditMode) return;
                       const val = e.target.value.replace(/\D/g, '');
                       setCedulaNum(val);
                     }}
@@ -268,6 +317,24 @@ export default function UserFormPage() {
               )}
             </div>
 
+            {/* Fecha de Nacimiento */}
+            <Input
+              label="Fecha de Nacimiento"
+              type="date"
+              icon="calendar_today"
+              error={errors.fechaNacimiento?.message}
+              required={!isEditMode}
+              {...register('fechaNacimiento')}
+            />
+          </div>
+
+          {/* ── Sección: Acceso ───────────────────────────────────────── */}
+          <p className="text-label-lg text-on-surface-variant font-semibold uppercase tracking-wider pt-sm pb-xs border-b border-outline-variant/20">
+            Acceso y Permisos
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+
             {/* Correo Electrónico */}
             <Input
               label="Correo Electrónico"
@@ -275,54 +342,49 @@ export default function UserFormPage() {
               icon="mail"
               placeholder="ejemplo@correo.com"
               error={errors.email?.message}
-              disabled={isReadOnly}
-              required={!isReadOnly}
+              required
               {...register('email')}
             />
 
             {/* Contraseña */}
-            {!isReadOnly && (
-              <Input
-                label={isEditMode ? "Nueva Contraseña" : "Contraseña"}
-                type="password"
-                icon="lock"
-                placeholder={isEditMode ? "Dejar en blanco para no modificar" : "Mínimo 6 caracteres"}
-                error={errors.password?.message}
-                required={!isEditMode}
-                {...register('password')}
-              />
-            )}
+            <Input
+              label={isEditMode ? 'Nueva Contraseña' : 'Contraseña'}
+              type="password"
+              icon="lock"
+              placeholder={isEditMode ? 'Dejar en blanco para no modificar' : 'Mínimo 8 caracteres'}
+              error={errors.password?.message}
+              required={!isEditMode}
+              {...register('password')}
+            />
 
             {/* Rol de Usuario */}
             <div className="space-y-1">
               <label className="block text-label-lg font-label-lg text-on-surface-variant">
-                Rol del Usuario {!isReadOnly && <span className="text-error font-bold">*</span>}
+                Rol del Usuario <span className="text-error font-bold">*</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
                   <Icon name="admin_panel_settings" size="20px" />
                 </span>
                 <select
-                  disabled={isReadOnly}
                   className={`
                     w-full bg-surface-container-low border rounded-lg
                     pl-10 pr-10 py-3 text-body-md text-on-surface
                     font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
-                    transition-all duration-200 appearance-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
+                    transition-all duration-200 appearance-none cursor-pointer
                     ${errors.role ? 'border-error focus:ring-error/30 focus:border-error' : 'border-outline-variant/40 hover:border-outline'}
                   `}
-                  required={!isReadOnly}
+                  required
                   {...register('role')}
                 >
                   <option value="" disabled>Seleccione un rol...</option>
                   <option value="admin">Administrador</option>
-                  <option value="usuario">Usuario</option>
+                  <option value="JEFE_COMUNIDAD">Jefe de Comunidad</option>
+                  <option value="LIDER_CALLE">Líder de Calle</option>
                 </select>
-                {!isReadOnly && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
-                    <Icon name="arrow_drop_down" />
-                  </span>
-                )}
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                  <Icon name="arrow_drop_down" />
+                </span>
               </div>
               {errors.role && (
                 <p className="text-label-sm text-error flex items-center gap-1 mt-1">
@@ -332,6 +394,100 @@ export default function UserFormPage() {
               )}
             </div>
 
+            {/* Estado (solo en edición) */}
+            {isEditMode && (
+              <div className="space-y-1">
+                <label className="block text-label-lg font-label-lg text-on-surface-variant">
+                  Estado de la Cuenta
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                    <Icon name="toggle_on" size="20px" />
+                  </span>
+                  <select
+                    className="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-10 pr-10 py-3 text-body-md text-on-surface font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200 appearance-none cursor-pointer"
+                    {...register('estado')}
+                  >
+                    <option value="activo">Activo</option>
+                    <option value="inactivo">Inactivo</option>
+                  </select>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                    <Icon name="arrow_drop_down" />
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Sección: Asignación Territorial (condicional) ─────────── */}
+          {showComunidad && (
+            <>
+              <p className="text-label-lg text-on-surface-variant font-semibold uppercase tracking-wider pt-sm pb-xs border-b border-outline-variant/20">
+                Asignación Territorial
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+
+                {/* Selector de Comunidad */}
+                <div className="space-y-1">
+                  <label className="block text-label-lg font-label-lg text-on-surface-variant">
+                    Comunidad <span className="text-error font-bold">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                      <Icon name="home_work" size="20px" />
+                    </span>
+                    <select
+                      className={`
+                        w-full bg-surface-container-low border rounded-lg
+                        pl-10 pr-10 py-3 text-body-md text-on-surface
+                        font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
+                        transition-all duration-200 appearance-none cursor-pointer
+                        ${errors.comunidad ? 'border-error focus:ring-error/30 focus:border-error' : 'border-outline-variant/40 hover:border-outline'}
+                      `}
+                      {...register('comunidad')}
+                    >
+                      <option value="">Seleccione una comunidad...</option>
+                      {comunidades.map((c) => (
+                        <option key={c._id} value={c._id}>
+                          {c.nombre} — {c.municipio}, {c.estado}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                      <Icon name="arrow_drop_down" />
+                    </span>
+                  </div>
+                  {errors.comunidad && (
+                    <p className="text-label-sm text-error flex items-center gap-1 mt-1">
+                      <Icon name="error" size="14px" />
+                      {errors.comunidad.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Input de Calle (solo LIDER_CALLE) */}
+                {showCalle && (
+                  <Input
+                    label="Calle Asignada"
+                    icon="signpost"
+                    placeholder="Ej. Calle Principal Norte"
+                    error={errors.calle?.message}
+                    required
+                    {...register('calle')}
+                  />
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── Sección: Contacto ──────────────────────────────────────── */}
+          <p className="text-label-lg text-on-surface-variant font-semibold uppercase tracking-wider pt-sm pb-xs border-b border-outline-variant/20">
+            Información de Contacto
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+
             {/* Teléfono */}
             <Input
               label="Teléfono"
@@ -339,18 +495,7 @@ export default function UserFormPage() {
               icon="phone"
               placeholder="Ej. 0412-1234567"
               error={errors.telefono?.message}
-              disabled={isReadOnly}
               {...register('telefono', { onChange: handleTelefonoChange })}
-            />
-
-            {/* Fecha de Nacimiento */}
-            <Input
-              label="Fecha de Nacimiento"
-              type="date"
-              icon="calendar_today"
-              error={errors.fechaNacimiento?.message}
-              disabled={isReadOnly}
-              {...register('fechaNacimiento')}
             />
 
             {/* Dirección */}
@@ -359,8 +504,6 @@ export default function UserFormPage() {
               icon="home"
               placeholder="Ej. Av. Principal de Coro, Casa Nro. 5"
               error={errors.direccion?.message}
-              disabled={isReadOnly}
-              className="md:col-span-2"
               {...register('direccion')}
             />
 
@@ -377,18 +520,16 @@ export default function UserFormPage() {
               onClick={() => navigate('/usuarios')}
               className="active:scale-95 transition-all"
             >
-              {isReadOnly ? 'Volver' : 'Cancelar'}
+              Cancelar
             </Button>
-            {!isReadOnly && (
-              <Button
-                type="submit"
-                loading={isLoading}
-                icon={<Icon name="save" size="20px" />}
-                className="active:scale-95 transition-all px-lg"
-              >
-                {isEditMode ? 'Guardar Cambios' : 'Registrar Usuario'}
-              </Button>
-            )}
+            <Button
+              type="submit"
+              loading={isLoading}
+              icon={<Icon name="save" size="20px" />}
+              className="active:scale-95 transition-all px-lg"
+            >
+              {isEditMode ? 'Guardar Cambios' : 'Registrar Usuario'}
+            </Button>
           </div>
 
         </form>

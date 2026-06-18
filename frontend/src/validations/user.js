@@ -100,7 +100,7 @@ export const createUserSchema = z
 
 export const updateUserSchema = createUserSchema
   .innerType()
-  .omit({ password: true })
+  .omit({ password: true, cedula: true })
   .partial()
   .extend({
     password: z

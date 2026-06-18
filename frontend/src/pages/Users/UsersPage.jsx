@@ -93,14 +93,26 @@ export default function UsersPage() {
 
   // Badge estético para Roles
   const renderRoleBadge = (role) => {
-    const styles = {
-      admin: 'uppercase bg-primary/10 text-primary border-primary/20',
-      usuario: 'uppercase bg-surface-container/60 text-on-surface border-outline-variant/10',
+    const config = {
+      admin: {
+        label: 'Administrador',
+        style: 'bg-primary/10 text-primary border-primary/20',
+      },
+      JEFE_COMUNIDAD: {
+        label: 'Jefe de Comunidad',
+        style: 'bg-secondary/10 text-secondary border-secondary/20',
+      },
+      LIDER_CALLE: {
+        label: 'Líder de Calle',
+        style: 'bg-tertiary/10 text-tertiary border-tertiary/20',
+      },
     };
 
+    const entry = config[role] || { label: role, style: 'bg-surface-container/60 text-on-surface border-outline-variant/10' };
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${styles[role] || ''}`}>
-        {role}
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${entry.style}`}>
+        {entry.label}
       </span>
     );
   };
@@ -175,7 +187,8 @@ export default function UsersPage() {
             >
               <option value="">Todos los Roles</option>
               <option value="admin">Administrador</option>
-              <option value="usuario">Usuario</option>
+              <option value="JEFE_COMUNIDAD">Jefe de Comunidad</option>
+              <option value="LIDER_CALLE">Líder de Calle</option>
             </select>
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
               <Icon name="arrow_drop_down" />
