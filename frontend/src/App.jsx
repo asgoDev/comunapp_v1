@@ -9,6 +9,9 @@ import DashboardPage from './pages/Dashboard/DashboardPage';
 import NotFoundPage from './pages/NotFoundPage';
 import UsersPage from './pages/Users/UsersPage';
 import UserFormPage from './pages/Users/UserFormPage';
+import ComunidadesPage from './pages/Comunidades/ComunidadesPage';
+import ComunidadFormPage from './pages/Comunidades/ComunidadFormPage';
+import ComunidadResumenPage from './pages/Comunidades/ComunidadResumenPage';
 import AuditoriaPage from './pages/Auditoria/AuditoriaPage';
 
 function App() {
@@ -82,6 +85,10 @@ function App() {
           <Route path="usuarios" element={<UsersPage />} />
           <Route path="usuarios/nuevo" element={<UserFormPage />} />
           <Route path="usuarios/:id" element={<UserFormPage />} />
+          <Route path="comunidades" element={<ComunidadesPage />} />
+          <Route path="comunidades/nueva" element={<ComunidadFormPage />} />
+          <Route path="comunidades/:id" element={<ComunidadFormPage />} />
+          <Route path="comunidades/:id/resumen" element={<ComunidadResumenPage />} />
           <Route path="auditoria" element={<AuditoriaPage />} />
         </Route>
       </Route>
