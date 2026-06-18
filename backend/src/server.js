@@ -14,6 +14,7 @@ import errorHandler from './shared/middleware/errorHandler.js';
 // ── Rutas ──
 import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/users/user.routes.js';
+import comunidadRoutes from './modules/comunidades/comunidad.routes.js';
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import auditoriaRoutes from './modules/auditoria/auditoria.routes.js';
 
@@ -61,6 +62,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/comunidades', comunidadRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/auditoria', auditoriaRoutes);
 

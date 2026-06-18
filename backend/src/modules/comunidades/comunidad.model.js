@@ -21,6 +21,12 @@ const comunidadSchema = new mongoose.Schema(
       trim: true,
       maxlength: [100, "El estado no puede superar 100 caracteres"],
     },
+    // ── Estado lógico ─────────────────────────────────────────────────────────
+    activo: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -30,6 +36,7 @@ const comunidadSchema = new mongoose.Schema(
 
 // ── Índice de búsqueda frecuente ──────────────────────────────────────────────
 comunidadSchema.index({ nombre: 1, municipio: 1, estado: 1 });
+comunidadSchema.index({ activo: 1, nombre: 1 });
 
 const Comunidad = mongoose.model("Comunidad", comunidadSchema);
 export default Comunidad;
