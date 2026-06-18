@@ -1,6 +1,9 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
+// ── Roles disponibles ─────────────────────────────────────────────────────────
+export const ROLES = ["admin", "JEFE_COMUNIDAD", "LIDER_CALLE"];
+
 /**
  * Teléfono venezolano: prefijos fijos (0212, 0261…) o celulares (04XX-XXXXXXX).
  * Formato esperado: 04XX-XXXXXXX  |  02XX-XXXXXXX
@@ -48,10 +51,44 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ["admin", "usuario"],
-        message: "El rol debe ser admin o usuario",
+        values: ROLES,
+        message: `El rol debe ser uno de: ${ROLES.join(", ")}`,
       },
-      default: "usuario",
+      required: [true, "El rol es requerido"],
+    },
+
+    // ── Comunidad y Calle (requeridos según rol) ───────────────────────────
+    comunidad: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Comunidad",
+      validate: {
+        validator: function (value) {
+          // JEFE_COMUNIDAD y LIDER_CALLE requieren comunidad
+          if (
+            this.role === "JEFE_COMUNIDAD" ||
+            this.role === "LIDER_CALLE"
+          ) {
+            return !!value;
+          }
+          return true;
+        },
+        message:
+          "La comunidad es requerida para los roles JEFE_COMUNIDAD y LIDER_CALLE",
+      },
+    },
+    calle: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: function (value) {
+          // LIDER_CALLE requiere calle
+          if (this.role === "LIDER_CALLE") {
+            return !!value && value.trim().length > 0;
+          }
+          return true;
+        },
+        message: "La calle es requerida para el rol LIDER_CALLE",
+      },
     },
     estado: {
       type: String,
@@ -95,6 +132,7 @@ const userSchema = new mongoose.Schema(
 
 // ── Índice compuesto para búsquedas frecuentes ────────────────────────────────
 userSchema.index({ estado: 1, role: 1 });
+userSchema.index({ comunidad: 1, calle: 1 });
 
 // ── Hash del password antes de guardar ───────────────────────────────────────
 userSchema.pre("save", async function (next) {

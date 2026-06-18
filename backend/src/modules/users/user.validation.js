@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { ROLES } from "../users/user.model.js";
 
 const CEDULA_REGEX = /^[VvEe]-\d{6,9}$/;
 const TELEFONO_REGEX = /^(0(4(12|14|16|24|26)|2\d{2}))-\d{7}$/;
+const OBJECT_ID_REGEX = /^[a-f\d]{24}$/i;
 
 // ── Campos base reutilizables ─────────────────────────────────────────────────
 
@@ -46,8 +48,8 @@ const password = z
   .string({ required_error: "La contraseña es requerida" })
   .min(8, "La contraseña debe tener al menos 8 caracteres");
 
-const role = z.enum(["admin", "usuario"], {
-  errorMap: () => ({ message: "El rol debe ser admin o usuario" }),
+const role = z.enum(ROLES, {
+  errorMap: () => ({ message: `El rol debe ser uno de: ${ROLES.join(", ")}` }),
 });
 
 const estado = z.enum(["activo", "inactivo"], {
@@ -68,24 +70,67 @@ const direccion = z
   .nullable()
   .optional();
 
-// ── Schemas exportados ────────────────────────────────────────────────────────
+const comunidad = z
+  .string()
+  .regex(OBJECT_ID_REGEX, "ID de comunidad inválido")
+  .nullable()
+  .optional();
+
+const calle = z
+  .string()
+  .trim()
+  .min(1, "La calle no puede estar vacía")
+  .nullable()
+  .optional();
+
+// ── Schemas exportados ─────────────────────────────────────────────────────────
+
+/**
+ * Validación de negocio: comunidad y calle según el rol.
+ */
+const rolesValidator = (data, ctx) => {
+  if (
+    data.role === "JEFE_COMUNIDAD" ||
+    data.role === "LIDER_CALLE"
+  ) {
+    if (!data.comunidad) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["comunidad"],
+        message: "La comunidad es requerida para los roles JEFE_COMUNIDAD y LIDER_CALLE",
+      });
+    }
+  }
+  if (data.role === "LIDER_CALLE") {
+    if (!data.calle || data.calle.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["calle"],
+        message: "La calle es requerida para el rol LIDER_CALLE",
+      });
+    }
+  }
+};
 
 /**
  * Creación: todos los campos obligatorios requeridos.
- * El role es opcional — por defecto el modelo asigna 'usuario'.
  */
-export const createUserSchema = z.object({
-  nombre,
-  apellido,
-  cedula,
-  fechaNacimiento,
-  email,
-  password,
-  role: role.optional(),
-  telefono,
-  direccion,
-  estado: estado.optional(),
-});
+export const createUserSchema = z
+  .object({
+    nombre,
+    apellido,
+    cedula,
+    fechaNacimiento,
+    email,
+    password,
+    role,
+    telefono,
+    direccion,
+    estado: estado.optional(),
+    comunidad,
+    calle,
+  })
+  .superRefine(rolesValidator);
 
 /**
  * Actualización: todos los campos opcionales.
@@ -103,7 +148,15 @@ export const updateUserSchema = z
     telefono,
     direccion,
     estado: estado.optional(),
+    comunidad,
+    calle,
   })
-  .refine((data) => Object.keys(data).length > 0, {
-    message: "Debe enviar al menos un campo para actualizar",
+  .superRefine((data, ctx) => {
+    if (Object.keys(data).filter(k => data[k] !== undefined).length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Debe enviar al menos un campo para actualizar",
+      });
+    }
+    rolesValidator(data, ctx);
   });
