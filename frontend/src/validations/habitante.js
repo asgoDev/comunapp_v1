@@ -46,6 +46,21 @@ export const createHabitanteSchema = z.object({
     .optional()
     .or(z.literal(''))
     .transform((val) => (val === '' ? undefined : val)),
+
+  comunidad: z
+    .string()
+    .regex(/^[a-f\d]{24}$/i, 'ID de comunidad inválido')
+    .optional()
+    .or(z.literal(''))
+    .transform((val) => (val === '' ? undefined : val)),
+
+  calle: z
+    .string()
+    .trim()
+    .min(1, 'La calle no puede estar vacía')
+    .optional()
+    .or(z.literal(''))
+    .transform((val) => (val === '' ? undefined : val)),
 });
 
 export const updateHabitanteSchema = createHabitanteSchema.partial();

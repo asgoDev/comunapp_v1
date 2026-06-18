@@ -8,6 +8,7 @@ import comunas from '/comunas.webp';
 const navigation = [
   { name: 'Dashboard', icon: 'dashboard', path: '/', roles: ['admin', 'JEFE_COMUNIDAD', 'LIDER_CALLE'] },
   { name: 'Comunidades', icon: 'home_work', path: '/comunidades', roles: ['admin', 'JEFE_COMUNIDAD'] },
+  { name: 'Habitantes', icon: 'groups', path: '/habitantes', roles: ['admin', 'JEFE_COMUNIDAD', 'LIDER_CALLE'] },
   { name: 'Usuarios', icon: 'admin_panel_settings', path: '/usuarios', roles: ['admin'] },
   { name: 'Auditoría', icon: 'history', path: '/auditoria', roles: ['admin'] },
 ];

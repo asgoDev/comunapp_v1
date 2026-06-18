@@ -6,7 +6,7 @@ import {
     verifyRefreshToken,
 } from '../../infrastructure/jwt/jwt.utils.js';
 
-const PUBLIC_USER_FIELDS = 'id nombre apellido email role';
+const PUBLIC_USER_FIELDS = 'id nombre apellido email role comunidad calle';
 
 class AuthService {
     /**
@@ -25,7 +25,9 @@ class AuthService {
             ? { cedula: identifier.toUpperCase() }
             : { email: identifier.toLowerCase() };
 
-        const user = await User.findOne(query).select('+password');
+        const user = await User.findOne(query)
+            .select('+password')
+            .populate('comunidad', 'nombre');
 
         // Ejecutar siempre una comparación para igualar el tiempo de respuesta
         const DUMMY_HASH = '$2b$12$eImiTXuWVxfM37uY4JANjQe5ds4vAMpN8BUDKPqO4yrIbmUxKKiJy';
@@ -60,6 +62,8 @@ class AuthService {
                 apellido: user.apellido,
                 email: user.email,
                 role: user.role,
+                comunidad: user.comunidad,
+                calle: user.calle,
             },
             accessToken,
             refreshToken,
@@ -109,7 +113,9 @@ class AuthService {
      * Solo proyecta campos públicos para no exponer datos internos.
      */
     async getMe(userId) {
-        const user = await User.findById(userId).select(PUBLIC_USER_FIELDS);
+        const user = await User.findById(userId)
+            .select(PUBLIC_USER_FIELDS)
+            .populate('comunidad', 'nombre');
         if (!user) {
             throw new AppError('Usuario no encontrado.', 404, 'USER_NOT_FOUND');
         }

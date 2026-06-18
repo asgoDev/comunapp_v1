@@ -49,6 +49,17 @@ export const createHabitanteSchema = z.object({
     .trim()
     .nullable()
     .optional(),
+
+  comunidad: z
+    .string()
+    .regex(OBJECT_ID_REGEX, "ID de comunidad inválido")
+    .optional(),
+
+  calle: z
+    .string()
+    .trim()
+    .min(1, "La calle no puede estar vacía")
+    .optional(),
 });
 
 /**
@@ -69,6 +80,8 @@ export const updateHabitanteSchema = z
     fechaNacimiento: z.string().date("Formato de fecha inválido. Use YYYY-MM-DD").optional(),
     jefeFamilia: z.boolean().optional(),
     discapacitado: z.string().trim().nullable().optional(),
+    comunidad: z.string().regex(OBJECT_ID_REGEX, "ID de comunidad inválido").optional(),
+    calle: z.string().trim().min(1).optional(),
   })
   .refine((data) => Object.keys(data).filter((k) => data[k] !== undefined).length > 0, {
     message: "Debe enviar al menos un campo para actualizar",

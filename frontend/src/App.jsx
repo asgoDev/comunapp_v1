@@ -13,6 +13,10 @@ import ComunidadesPage from './pages/Comunidades/ComunidadesPage';
 import ComunidadFormPage from './pages/Comunidades/ComunidadFormPage';
 import ComunidadResumenPage from './pages/Comunidades/ComunidadResumenPage';
 import AuditoriaPage from './pages/Auditoria/AuditoriaPage';
+import HabitantesPage from './pages/Habitantes/HabitantesPage';
+import CasaDetailPage from './pages/Habitantes/CasaDetailPage';
+import HabitanteFormPage from './pages/Habitantes/HabitanteFormPage';
+import HabitanteDetailPage from './pages/Habitantes/HabitanteDetailPage';
 
 function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -89,6 +93,11 @@ function App() {
           <Route path="comunidades/nueva" element={<ComunidadFormPage />} />
           <Route path="comunidades/:id" element={<ComunidadFormPage />} />
           <Route path="comunidades/:id/resumen" element={<ComunidadResumenPage />} />
+          <Route path="habitantes" element={<HabitantesPage />} />
+          <Route path="habitantes/nuevo" element={<HabitanteFormPage />} />
+          <Route path="habitantes/casa/:numero" element={<CasaDetailPage />} />
+          <Route path="habitantes/:id" element={<HabitanteDetailPage />} />
+          <Route path="habitantes/:id/editar" element={<HabitanteFormPage />} />
           <Route path="auditoria" element={<AuditoriaPage />} />
         </Route>
       </Route>
