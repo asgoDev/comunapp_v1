@@ -98,7 +98,7 @@ export default function LoginPage() {
 
           {/* Header */}
           <div className="mb-8 text-center">
-            <h2 className="text-headline-md font-headline-md text-primary mb-2 font-black">
+            <h2 className="text-headline-md lg:text-headline-lg font-headline-md text-primary mb-2 font-black">
               Iniciar Sesión
             </h2>
             <p className="text-body-md text-on-surface-variant">
