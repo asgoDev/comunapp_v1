@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
-import { useHabitanteStore } from '../../stores/habitanteStore';
+import { useBulkCreateHabitantes } from '../../hooks/useHabitanteQueries';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
@@ -43,6 +43,7 @@ function StatCard({ icon, value, label, colorClass }) {
   );
 }
 
+// TablaPreview and TablaErrores components
 function TablaPreview({ habitantes }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-outline-variant/20">
@@ -114,7 +115,7 @@ function TablaErrores({ errores }) {
 export default function HabitantesBulkPage() {
   const navigate = useNavigate();
   const currentUser = useAuthStore((s) => s.user);
-  const { isLoading, bulkCreateHabitantes } = useHabitanteStore();
+  const { mutateAsync: bulkCreateHabitantes, isPending: isLoading } = useBulkCreateHabitantes();
 
   const fileInputRef = useRef(null);
 

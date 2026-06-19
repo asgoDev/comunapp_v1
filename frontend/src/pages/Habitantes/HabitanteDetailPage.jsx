@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
-import { useHabitanteStore } from '../../stores/habitanteStore';
+import { useHabitanteById, useDeleteHabitante } from '../../hooks/useHabitanteQueries';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
@@ -11,24 +11,19 @@ export default function HabitanteDetailPage() {
   const navigate = useNavigate();
 
   const currentUser = useAuthStore((s) => s.user);
-  const { fetchHabitanteById, deleteHabitante, isLoading } = useHabitanteStore();
-  const [habitante, setHabitante] = useState(null);
+  const { data: habitante, isLoading, isError } = useHabitanteById(id);
+  const { mutateAsync: deleteHabitante } = useDeleteHabitante();
 
   const isAdmin = currentUser?.role === 'admin';
   const isLiderCalle = currentUser?.role === 'LIDER_CALLE';
   const canEditOrDelete = isAdmin || isLiderCalle;
 
   useEffect(() => {
-    fetchHabitanteById(id)
-      .then((data) => {
-        setHabitante(data);
-      })
-      .catch((err) => {
-        console.error(err);
-        toast.error('Error al cargar la información del habitante.');
-        navigate('/habitantes');
-      });
-  }, [id, fetchHabitanteById, navigate]);
+    if (isError) {
+      toast.error('Error al cargar la información del habitante.');
+      navigate('/habitantes');
+    }
+  }, [isError, navigate]);
 
   const handleDelete = async () => {
     if (!habitante) return;

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
-import { useHabitanteStore } from '../../stores/habitanteStore';
+import { useHabitantes, useDeleteHabitante } from '../../hooks/useHabitanteQueries';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
@@ -12,7 +12,6 @@ export default function CasaDetailPage() {
   const navigate = useNavigate();
 
   const currentUser = useAuthStore((s) => s.user);
-  const { habitantes, isLoading, fetchHabitantes, deleteHabitante } = useHabitanteStore();
 
   const calle = searchParams.get('calle') || '';
   const isAdmin = currentUser?.role === 'admin';
@@ -21,14 +20,15 @@ export default function CasaDetailPage() {
 
   const canEditOrDelete = isAdmin || isLiderCalle;
 
+  const { data, isLoading, isError } = useHabitantes(1, { calle, limit: 250 });
+  const habitantes = data?.habitantes || [];
+  const { mutateAsync: deleteHabitante } = useDeleteHabitante();
+
   useEffect(() => {
-    if (calle) {
-      fetchHabitantes(1, { calle, limit: 250 }).catch((err) => {
-        console.error(err);
-        toast.error('Error al cargar la información de los habitantes.');
-      });
+    if (isError) {
+      toast.error('Error al cargar la información de los habitantes.');
     }
-  }, [fetchHabitantes, calle]);
+  }, [isError]);
 
   // Filtrar localmente por número de casa
   const integrantes = habitantes.filter((h) => String(h.numeroCasa) === String(numero));
@@ -42,8 +42,6 @@ export default function CasaDetailPage() {
     try {
       await deleteHabitante(habitante._id);
       toast.success('Habitante eliminado exitosamente.');
-      // Recargar lista
-      fetchHabitantes(1, { calle, limit: 250 });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error al eliminar el habitante.');
     }

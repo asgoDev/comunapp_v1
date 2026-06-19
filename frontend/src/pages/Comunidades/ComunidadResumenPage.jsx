@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
-import { useComunidadStore } from '../../stores/comunidadStore';
+import { useComunidadById, useComunidadResumen } from '../../hooks/useComunidadQueries';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
@@ -10,46 +10,21 @@ export default function ComunidadResumenPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const currentUser = useAuthStore((s) => s.user);
-  const { fetchComunidadById, fetchComunidadResumen } = useComunidadStore();
-
-  const [comunidad, setComunidad] = useState(null);
-  const [resumen, setResumen] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   const isAdmin = currentUser?.role === 'admin';
   const isJefeComunidad = currentUser?.role === 'JEFE_COMUNIDAD';
 
+  const { data: comunidad, isLoading: isComunidadLoading, isError: isComunidadError } = useComunidadById(id);
+  const { data: resumen, isLoading: isResumenLoading, isError: isResumenError } = useComunidadResumen(id);
+
+  const loading = isComunidadLoading || isResumenLoading;
+
   useEffect(() => {
-    let active = true;
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [comunidadData, resumenData] = await Promise.all([
-          fetchComunidadById(id),
-          fetchComunidadResumen(id)
-        ]);
-
-        if (active) {
-          setComunidad(comunidadData);
-          setResumen(resumenData);
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error('Error al cargar la información detallada de la comunidad.');
-        navigate('/comunidades');
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadData();
-
-    return () => {
-      active = false;
-    };
-  }, [id, fetchComunidadById, fetchComunidadResumen, navigate]);
+    if (isComunidadError || isResumenError) {
+      toast.error('Error al cargar la información detallada de la comunidad.');
+      navigate(isJefeComunidad ? '/' : '/comunidades');
+    }
+  }, [isComunidadError, isResumenError, navigate, isJefeComunidad]);
 
   if (loading) {
     return (

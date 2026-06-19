@@ -1,34 +1,12 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
-import { dashboardService } from '../../services/dashboardService';
+import { useDashboardStats } from '../../hooks/useDashboardQueries';
 import Icon from '../../components/ui/Icon';
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
-  const [stats, setStats] = useState({
-    usersCount: 0,
-    activeUsersCount: 0,
-    auditCount: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data } = await dashboardService.getStats();
-        if (!cancelled) setStats(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: statsData, isLoading } = useDashboardStats();
+  const stats = statsData || { usersCount: 0, activeUsersCount: 0, auditCount: 0 };
 
   const greeting = () => {
     const hour = new Date().getHours();

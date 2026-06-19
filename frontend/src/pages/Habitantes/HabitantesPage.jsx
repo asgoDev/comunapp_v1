@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
-import { useHabitanteStore } from '../../stores/habitanteStore';
+import { useHabitantes } from '../../hooks/useHabitanteQueries';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
@@ -12,8 +12,6 @@ export default function HabitantesPage() {
   const navigate = useNavigate();
   const currentUser = useAuthStore((s) => s.user);
 
-  const { habitantes, isLoading, fetchHabitantes } = useHabitanteStore();
-
   const isLiderCalle = currentUser?.role === 'LIDER_CALLE';
   const isAdmin = currentUser?.role === 'admin';
   const userCalle = currentUser?.calle || '';
@@ -21,19 +19,20 @@ export default function HabitantesPage() {
   const [selectedCalle, setSelectedCalle] = useState(isLiderCalle ? userCalle : '');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Cargar habitantes al cambiar selectedCalle o al montar
-  useEffect(() => {
-    if (isLiderCalle && !userCalle) return;
+  const filters = {};
+  if (selectedCalle) {
+    filters.calle = selectedCalle;
+  }
+  filters.limit = 250;
 
-    const filters = {};
-    if (selectedCalle) {
-      filters.calle = selectedCalle;
-    }
-    fetchHabitantes(1, { ...filters, limit: 250 }).catch((err) => {
-      console.error(err);
+  const { data, isLoading, isError } = useHabitantes(1, filters);
+  const habitantes = data?.habitantes || [];
+
+  useEffect(() => {
+    if (isError) {
       toast.error('Error al cargar la lista de habitantes.');
-    });
-  }, [fetchHabitantes, selectedCalle, isLiderCalle, userCalle]);
+    }
+  }, [isError]);
 
   // Filtrar habitantes localmente por búsqueda
   const filteredHabitantes = habitantes.filter((h) => {

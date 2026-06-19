@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
-import { useAuditoriaStore } from '../../stores/auditoriaStore';
+import { useAuditoriaLogs } from '../../hooks/useAuditoriaQueries';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
@@ -14,24 +14,18 @@ export default function AuditoriaPage() {
     return <Navigate to="/" replace />;
   }
 
-  const { logs, pagination, isLoading, fetchLogs } = useAuditoriaStore();
-
   const [currentPage, setCurrentPage] = useState(1);
   const [moduloFilter, setModuloFilter] = useState('');
   const [accionFilter, setAccionFilter] = useState('');
   const [resultadoFilter, setResultadoFilter] = useState('');
 
-  useEffect(() => {
-    const filters = {};
-    if (moduloFilter) filters.modulo = moduloFilter;
-    if (accionFilter) filters.accion = accionFilter;
-    if (resultadoFilter) filters.resultado = resultadoFilter;
-
-    fetchLogs(currentPage, filters).catch((err) => {
-      console.error(err);
-      toast.error('Error al cargar los logs de auditoría');
-    });
-  }, [fetchLogs, currentPage, moduloFilter, accionFilter, resultadoFilter]);
+  const { data, isLoading } = useAuditoriaLogs(currentPage, {
+    modulo: moduloFilter || undefined,
+    accion: accionFilter || undefined,
+    resultado: resultadoFilter || undefined,
+  });
+  const logs = data?.logs || [];
+  const pagination = data?.pagination || { total: 0, page: 1, pages: 1 };
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= pagination.pages) {

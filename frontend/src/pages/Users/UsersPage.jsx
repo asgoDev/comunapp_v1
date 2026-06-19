@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
-import { useUserStore } from '../../stores/userStore';
+import { useUsers, useDeleteUser, useUpdateUser } from '../../hooks/useUserQueries';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import Avatar from '../../components/ui/Avatar';
@@ -17,8 +17,6 @@ export default function UsersPage() {
     return <Navigate to="/" replace />;
   }
 
-  const { users, pagination, isLoading, fetchUsers, deleteUser, updateUser } = useUserStore();
-
   const [roleFilter, setRoleFilter] = useState('');
   const [estadoFilter, setEstadoFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,17 +25,15 @@ export default function UsersPage() {
   const isAdmin = currentUser?.role === 'admin';
   const isJefeComunidad = currentUser?.role === 'JEFE_COMUNIDAD';
 
-  // Cargar usuarios cuando cambia la página o los filtros
-  useEffect(() => {
-    const filters = {};
-    if (roleFilter) filters.role = roleFilter;
-    if (estadoFilter) filters.estado = estadoFilter;
+  const { data, isLoading } = useUsers(currentPage, {
+    role: roleFilter || undefined,
+    estado: estadoFilter || undefined,
+  });
+  const users = data?.users || [];
+  const pagination = data?.pagination || { total: 0, page: 1, pages: 1 };
 
-    fetchUsers(currentPage, filters).catch((err) => {
-      console.error(err);
-      toast.error('Error al cargar la lista de usuarios');
-    });
-  }, [fetchUsers, currentPage, roleFilter, estadoFilter]);
+  const { mutateAsync: deleteUser } = useDeleteUser();
+  const { mutateAsync: updateUser } = useUpdateUser();
 
   // Filtrar localmente por búsqueda de texto (nombre, apellido, cédula, email)
   const filteredUsers = users.filter((user) => {
@@ -80,14 +76,9 @@ export default function UsersPage() {
         toast.success('Usuario desactivado exitosamente.');
       } else {
         // Para activar, usamos PUT
-        await updateUser(user._id, { estado: 'activo' });
+        await updateUser({ id: user._id, data: { estado: 'activo' } });
         toast.success('Usuario activado exitosamente.');
       }
-      // Recargar la página actual
-      fetchUsers(currentPage, {
-        role: roleFilter || undefined,
-        estado: estadoFilter || undefined,
-      });
     } catch (err) {
       toast.error(err.response?.data?.message || `Error al ${actionLabel} al usuario.`);
     }

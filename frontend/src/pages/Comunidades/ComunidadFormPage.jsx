@@ -3,7 +3,7 @@ import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../../stores/authStore';
-import { useComunidadStore } from '../../stores/comunidadStore';
+import { useComunidadById, useCreateComunidad, useUpdateComunidad } from '../../hooks/useComunidadQueries';
 import { createComunidadSchema, updateComunidadSchema } from '../../validations/comunidad.js';
 import venezuelaData from '../../utils/venezuela.json';
 import Input from '../../components/ui/Input';
@@ -15,9 +15,14 @@ export default function ComunidadFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const currentUser = useAuthStore((s) => s.user);
-  const { createComunidad, updateComunidad, fetchComunidadById, isLoading } = useComunidadStore();
 
   const isEditMode = !!id;
+
+  const { data: comunidadData, isLoading: isLoadingQuery, isError: isErrorQuery } = useComunidadById(id);
+  const { mutateAsync: createComunidad, isPending: isCreating } = useCreateComunidad();
+  const { mutateAsync: updateComunidad, isPending: isUpdating } = useUpdateComunidad();
+
+  const isLoading = isLoadingQuery || isCreating || isUpdating;
 
   const {
     register,
@@ -55,30 +60,29 @@ export default function ComunidadFormPage() {
 
   // Cargar datos en modo edición
   useEffect(() => {
-    if (isEditMode) {
-      fetchComunidadById(id)
-        .then((data) => {
-          reset({
-            nombre: data.nombre || '',
-            municipio: data.municipio || '',
-            estado: data.estado || '',
-            parroquia: data.parroquia || '',
-            ciudadPueblo: data.ciudadPueblo || '',
-            circuitoComuna: data.circuitoComuna || '',
-          });
-        })
-        .catch((err) => {
-          console.error(err);
-          toast.error('Error al cargar la información de la comunidad.');
-          navigate('/comunidades');
-        });
+    if (comunidadData) {
+      reset({
+        nombre: comunidadData.nombre || '',
+        municipio: comunidadData.municipio || '',
+        estado: comunidadData.estado || '',
+        parroquia: comunidadData.parroquia || '',
+        ciudadPueblo: comunidadData.ciudadPueblo || '',
+        circuitoComuna: comunidadData.circuitoComuna || '',
+      });
     }
-  }, [id, isEditMode, fetchComunidadById, navigate, reset]);
+  }, [comunidadData, reset]);
+
+  useEffect(() => {
+    if (isErrorQuery) {
+      toast.error('Error al cargar la información de la comunidad.');
+      navigate('/comunidades');
+    }
+  }, [isErrorQuery, navigate]);
 
   const onSubmit = async (data) => {
     try {
       if (isEditMode) {
-        await updateComunidad(id, data);
+        await updateComunidad({ id, data });
         toast.success('Comunidad actualizada exitosamente.');
       } else {
         await createComunidad(data);

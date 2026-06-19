@@ -3,8 +3,8 @@ import { useParams, useNavigate, useSearchParams, Navigate } from 'react-router-
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../../stores/authStore';
-import { useHabitanteStore } from '../../stores/habitanteStore';
-import { useComunidadStore } from '../../stores/comunidadStore';
+import { useHabitanteById, useCreateHabitante, useUpdateHabitante } from '../../hooks/useHabitanteQueries';
+import { useComunidadesDropdown } from '../../hooks/useComunidadQueries';
 import { createHabitanteSchema, updateHabitanteSchema } from '../../validations/habitante.js';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
@@ -19,12 +19,19 @@ export default function HabitanteFormPage() {
   const [searchParams] = useSearchParams();
 
   const currentUser = useAuthStore((s) => s.user);
-  const { createHabitante, updateHabitante, fetchHabitanteById, isLoading } = useHabitanteStore();
-  const { comunidades, fetchComunidades } = useComunidadStore();
 
   const isEditMode = !!id;
   const isAdmin = currentUser?.role === 'admin';
   const isLiderCalle = currentUser?.role === 'LIDER_CALLE';
+
+  const { data: comunidadesData } = useComunidadesDropdown();
+  const comunidades = comunidadesData || [];
+
+  const { data: habitante, isLoading: isLoadingQuery, isError: isErrorQuery } = useHabitanteById(id);
+  const { mutateAsync: createHabitante, isPending: isCreating } = useCreateHabitante();
+  const { mutateAsync: updateHabitante, isPending: isUpdating } = useUpdateHabitante();
+
+  const isLoading = isLoadingQuery || isCreating || isUpdating;
 
   // Obtener parámetros iniciales para prellenar
   const queryCasa = searchParams.get('casa') || '';
@@ -62,14 +69,7 @@ export default function HabitanteFormPage() {
     return <Navigate to="/habitantes" replace />;
   }
 
-  // Cargar comunidades si es admin
-  useEffect(() => {
-    if (isAdmin) {
-      fetchComunidades(1, { limit: 200 }).catch(() => {
-        toast.error('No se pudo cargar la lista de comunidades.');
-      });
-    }
-  }, [fetchComunidades, isAdmin]);
+
 
   // Sincronizar cédula
   useEffect(() => {
@@ -83,40 +83,39 @@ export default function HabitanteFormPage() {
 
   // Cargar habitante en modo edición
   useEffect(() => {
-    if (isEditMode) {
-      fetchHabitanteById(id)
-        .then((h) => {
-          reset({
-            nombres: h.nombres || '',
-            apellidos: h.apellidos || '',
-            fechaNacimiento: h.fechaNacimiento
-              ? new Date(h.fechaNacimiento).toISOString().split('T')[0]
-              : '',
-            numeroCasa: h.numeroCasa || '',
-            jefeFamilia: h.jefeFamilia || false,
-            discapacitado: h.discapacitado || '',
-            comunidad: h.comunidad?._id || h.comunidad || '',
-            calle: h.calle || '',
-          });
-          setTieneDiscapacidad(!!h.discapacitado);
+    if (habitante) {
+      reset({
+        nombres: habitante.nombres || '',
+        apellidos: habitante.apellidos || '',
+        fechaNacimiento: habitante.fechaNacimiento
+          ? new Date(habitante.fechaNacimiento).toISOString().split('T')[0]
+          : '',
+        numeroCasa: habitante.numeroCasa || '',
+        jefeFamilia: habitante.jefeFamilia || false,
+        discapacitado: habitante.discapacitado || '',
+        comunidad: habitante.comunidad?._id || habitante.comunidad || '',
+        calle: habitante.calle || '',
+      });
+      setTieneDiscapacidad(!!habitante.discapacitado);
 
-          if (h.cedula) {
-            const parts = h.cedula.split('-');
-            if (parts.length === 2) {
-              setCedulaTipo(parts[0]);
-              setCedulaNum(parts[1]);
-            } else {
-              setCedulaNum(h.cedula);
-            }
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          toast.error('Error al cargar la información del habitante.');
-          navigate('/habitantes');
-        });
+      if (habitante.cedula) {
+        const parts = habitante.cedula.split('-');
+        if (parts.length === 2) {
+          setCedulaTipo(parts[0]);
+          setCedulaNum(parts[1]);
+        } else {
+          setCedulaNum(habitante.cedula);
+        }
+      }
     }
-  }, [id, isEditMode, fetchHabitanteById, navigate, reset]);
+  }, [habitante, reset]);
+
+  useEffect(() => {
+    if (isErrorQuery) {
+      toast.error('Error al cargar la información del habitante.');
+      navigate('/habitantes');
+    }
+  }, [isErrorQuery, navigate]);
 
   const onSubmit = async (data) => {
     try {
@@ -139,7 +138,7 @@ export default function HabitanteFormPage() {
         delete payload.comunidad;
         delete payload.calle;
 
-        await updateHabitante(id, payload);
+        await updateHabitante({ id, data: payload });
         toast.success('Habitante actualizado exitosamente.');
       } else {
         await createHabitante(payload);

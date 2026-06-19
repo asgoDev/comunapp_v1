@@ -3,8 +3,8 @@ import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../../stores/authStore';
-import { useUserStore } from '../../stores/userStore';
-import { useComunidadStore } from '../../stores/comunidadStore';
+import { useUserById, useCreateUser, useUpdateUser } from '../../hooks/useUserQueries';
+import { useComunidadesDropdown } from '../../hooks/useComunidadQueries';
 import { createUserSchema, updateUserSchema } from '../../validations/user.js';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
@@ -20,10 +20,17 @@ export default function UserFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const currentUser = useAuthStore((s) => s.user);
-  const { createUser, updateUser, fetchUserById, isLoading } = useUserStore();
-  const { comunidades, fetchComunidades } = useComunidadStore();
 
   const isEditMode = !!id;
+
+  const { data: comunidadesData } = useComunidadesDropdown();
+  const comunidades = comunidadesData || [];
+
+  const { data: userData, isLoading: isLoadingQuery, isError: isErrorQuery } = useUserById(id);
+  const { mutateAsync: createUser, isPending: isCreating } = useCreateUser();
+  const { mutateAsync: updateUser, isPending: isUpdating } = useUpdateUser();
+
+  const isLoading = isLoadingQuery || isCreating || isUpdating;
 
   const [cedulaTipo, setCedulaTipo] = useState('V');
   const [cedulaNum, setCedulaNum] = useState('');
@@ -74,12 +81,7 @@ export default function UserFormPage() {
     }
   }, [isJefeComunidad, isEditMode, currentUser, setValue]);
 
-  // Cargar lista de comunidades activas al montar
-  useEffect(() => {
-    fetchComunidades(1, { limit: 200 }).catch(() => {
-      toast.error('No se pudo cargar la lista de comunidades.');
-    });
-  }, [fetchComunidades]);
+
 
   // Sincronizar la cédula de los estados locales al campo de react-hook-form
   useEffect(() => {
@@ -104,52 +106,51 @@ export default function UserFormPage() {
 
   // Cargar información del usuario en modo edición
   useEffect(() => {
-    if (isEditMode) {
-      fetchUserById(id)
-        .then((userData) => {
-          if (isJefeComunidad) {
-            const jefeComId = currentUser.comunidad?._id || currentUser.comunidad;
-            const userComId = userData.comunidad?._id || userData.comunidad;
-            if (userData.role !== 'LIDER_CALLE' || userComId?.toString() !== jefeComId?.toString()) {
-              toast.error('No tiene permisos para editar este usuario.');
-              navigate('/usuarios');
-              return;
-            }
-          }
-          reset({
-            nombre: userData.nombre || '',
-            apellido: userData.apellido || '',
-            email: userData.email || '',
-            password: '',
-            role: userData.role || '',
-            telefono: userData.telefono || '',
-            direccion: userData.direccion || '',
-            fechaNacimiento: userData.fechaNacimiento
-              ? new Date(userData.fechaNacimiento).toISOString().split('T')[0]
-              : '',
-            // La cédula NO se incluye en el reset porque no es editable
-            comunidad: userData.comunidad?._id || userData.comunidad || '',
-            calle: userData.calle || '',
-          });
-
-          // Rellenar los estados de la cédula solo para mostrarla (disabled)
-          if (userData.cedula) {
-            const parts = userData.cedula.split('-');
-            if (parts.length === 2) {
-              setCedulaTipo(parts[0]);
-              setCedulaNum(parts[1]);
-            } else {
-              setCedulaNum(userData.cedula);
-            }
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          toast.error('Error al cargar la información del usuario.');
+    if (userData) {
+      if (isJefeComunidad) {
+        const jefeComId = currentUser.comunidad?._id || currentUser.comunidad;
+        const userComId = userData.comunidad?._id || userData.comunidad;
+        if (userData.role !== 'LIDER_CALLE' || userComId?.toString() !== jefeComId?.toString()) {
+          toast.error('No tiene permisos para editar este usuario.');
           navigate('/usuarios');
-        });
+          return;
+        }
+      }
+      reset({
+        nombre: userData.nombre || '',
+        apellido: userData.apellido || '',
+        email: userData.email || '',
+        password: '',
+        role: userData.role || '',
+        telefono: userData.telefono || '',
+        direccion: userData.direccion || '',
+        fechaNacimiento: userData.fechaNacimiento
+          ? new Date(userData.fechaNacimiento).toISOString().split('T')[0]
+          : '',
+        // La cédula NO se incluye en el reset porque no es editable
+        comunidad: userData.comunidad?._id || userData.comunidad || '',
+        calle: userData.calle || '',
+      });
+
+      // Rellenar los estados de la cédula solo para mostrarla (disabled)
+      if (userData.cedula) {
+        const parts = userData.cedula.split('-');
+        if (parts.length === 2) {
+          setCedulaTipo(parts[0]);
+          setCedulaNum(parts[1]);
+        } else {
+          setCedulaNum(userData.cedula);
+        }
+      }
     }
-  }, [id, isEditMode, fetchUserById, navigate, reset, isJefeComunidad, currentUser]);
+  }, [userData, reset, isJefeComunidad, currentUser, navigate]);
+
+  useEffect(() => {
+    if (isErrorQuery) {
+      toast.error('Error al cargar la información del usuario.');
+      navigate('/usuarios');
+    }
+  }, [isErrorQuery, navigate]);
 
   const handleTelefonoChange = (e) => {
     let val = e.target.value.replace(/\D/g, '');
@@ -184,7 +185,7 @@ export default function UserFormPage() {
       if (!userData.direccion) delete userData.direccion;
 
       if (isEditMode) {
-        await updateUser(id, userData);
+        await updateUser({ id, data: userData });
         toast.success('Usuario actualizado exitosamente.');
       } else {
         await createUser(userData);

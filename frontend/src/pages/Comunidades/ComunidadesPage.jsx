@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
-import { useComunidadStore } from '../../stores/comunidadStore';
+import { useComunidades, useDeleteComunidad } from '../../hooks/useComunidadQueries';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
@@ -22,20 +22,15 @@ export default function ComunidadesPage() {
     return <Navigate to={`/comunidades/${currentUser.comunidad?._id || currentUser.comunidad}/resumen`} replace />;
   }
 
-  const { comunidades, pagination, isLoading, fetchComunidades, deleteComunidad } = useComunidadStore();
-
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const isAdmin = currentUser?.role === 'admin';
+  const { data, isLoading } = useComunidades(currentPage);
+  const comunidades = data?.comunidades || [];
+  const pagination = data?.pagination || { total: 0, page: 1, pages: 1 };
+  const { mutateAsync: deleteComunidad } = useDeleteComunidad();
 
-  // Cargar comunidades al cambiar de página
-  useEffect(() => {
-    fetchComunidades(currentPage).catch((err) => {
-      console.error(err);
-      toast.error('Error al cargar la lista de comunidades');
-    });
-  }, [fetchComunidades, currentPage]);
+  const isAdmin = currentUser?.role === 'admin';
 
   // Filtrado local
   const filteredComunidades = comunidades.filter((comunidad) => {
@@ -73,7 +68,6 @@ export default function ComunidadesPage() {
     try {
       await deleteComunidad(comunidad._id);
       toast.success('Comunidad desactivada exitosamente.');
-      fetchComunidades(currentPage);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error al desactivar la comunidad.');
     }
