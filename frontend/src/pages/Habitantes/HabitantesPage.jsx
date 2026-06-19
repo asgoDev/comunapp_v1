@@ -68,7 +68,7 @@ export default function HabitantesPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-md">
         <div>
-          <h2 className="text-headline-lg font-headline-lg text-primary">Habitantes y Casas</h2>
+          <h2 className="text-headline-lg font-headline-lg text-primary">Casas y Habitantes</h2>
           <p className="text-body-sm text-on-surface-variant">
             {isLiderCalle
               ? `Calle asignada: ${userCalle} — Comunidad: ${currentUser?.comunidad?.nombre || 'Mi Comunidad'}`

@@ -7,6 +7,7 @@ import { loginSchema } from '../../validations/auth.js';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
+import logo from '/mpp_comunas.webp'
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -42,54 +43,44 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* ── Panel Izquierdo: Branding ── */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+      <div className="bg-primary hidden lg:flex lg:flex-col lg:justify-center lg:w-1/2 relative overflow-hidden">
         {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-container to-primary animate-gradient" />
-        {/* <div className="absolute inset-0 bg-[#006a3bff] bg-cover bg-[position:25%_center] bg-no-repeat blur-[1px]" /> */}
 
-        {/* Pattern Overlay */}
-        <div className="absolute inset-0 opacity-15">
-          <div className="absolute top-20 left-20 w-64 h-64 border-2 border-white/35 rounded-full" />
-          <div className="absolute bottom-32 right-16 w-48 h-48 border-2 border-white/25 rounded-full" />
-          <div className="absolute bottom-1/3 left-1/4 w-32 h-32 border-2 border-white/40 rounded-full animate-pulse-ring" />
-        </div>
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-white">
+        <div className=" flex-1  max-h-[700px] relative z-10 flex flex-col justify-between items-center w-full p-12 text-white">
           {/* Logo */}
-          <div className="w-36 h-36 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center mb-8 shadow-2xl border border-white/20">
-            <Icon name="shield" className="text-6xl text-white" />
+          <div className="w-72  flex items-center justify-center">
+            <img src={logo} alt="Logo MPP comunas" className='w-full h-full object-contain' />
           </div>
 
-          <h1 className="text-display-lg font-display-lg text-center mb-4">
-            Plantilla Web
-          </h1>
-          <p className="text-body-lg text-center text-white/80 max-w-md leading-relaxed">
-            Autenticación JWT, usuarios y auditoría
-          </p>
+          <div className="">
+            <h1 className="text-display-lg font-display-lg text-center mb-4">
+              ComunApp
+            </h1>
+            <p className="text-body-lg text-center text-white/80 max-w-md leading-relaxed">
+              La solución integral para la gestión comunitaria
+            </p>
+          </div>
 
           {/* Decorative cards */}
-          <div className="mt-12 grid grid-cols-2 gap-4 max-w-sm w-full">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+          <div className=" grid grid-cols-1 gap-4 max-w-sm w-full">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10 flex items-center justify-center gap-2">
               <Icon name="shield" className="text-secondary-container mb-2" />
               <p className="text-sm font-semibold">Seguro</p>
               <p className="text-xs text-white/60">Autenticación JWT</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10 flex items-center justify-center gap-2">
               <Icon name="speed" className="text-secondary-container mb-2" />
               <p className="text-sm font-semibold">Eficiente</p>
               <p className="text-xs text-white/60">Gestión en tiempo real</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10 flex items-center justify-center gap-2">
               <Icon name="group" className="text-secondary-container mb-2" />
               <p className="text-sm font-semibold">Usuarios</p>
               <p className="text-xs text-white/60">CRUD con roles</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-              <Icon name="monitoring" className="text-secondary-container mb-2" />
-              <p className="text-sm font-semibold">Auditoría</p>
-              <p className="text-xs text-white/60">Trazabilidad total</p>
-            </div>
+
           </div>
         </div>
       </div>
@@ -98,16 +89,16 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6 bg-background">
         <div className="w-full max-w-md animate-fade-in-up">
           {/* Mobile logo */}
-          <div className="lg:hidden flex flex-col items-center mb-8 gap-2">
-            <div className="w-20 h-20 rounded-xl flex items-center justify-center bg-primary-container/20 text-primary">
-              <Icon name="shield" className="text-4xl" />
+          <div className="lg:hidden flex flex-col items-center mb-8 gap-8">
+            <div className="w-80 h-30 px-4 py-2 rounded-xl flex items-center justify-center bg-primary text-primary">
+              <img src={logo} alt="Logo MPP comunas" className='w-full h-full object-contain' />
             </div>
-            <h1 className="text-headline-md font-headline-md text-primary">Plantilla Web</h1>
+            <h1 className="text-4xl font-headline-md text-primary font-black ">ComunApp</h1>
           </div>
 
           {/* Header */}
-          <div className="mb-8">
-            <h2 className="text-headline-lg font-headline-lg text-on-surface mb-2">
+          <div className="mb-8 text-center">
+            <h2 className="text-headline-md font-headline-md text-primary mb-2 font-black">
               Iniciar Sesión
             </h2>
             <p className="text-body-md text-on-surface-variant">

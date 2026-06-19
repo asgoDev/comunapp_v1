@@ -33,7 +33,7 @@ export default function TopBar({ onMenuToggle }) {
           <Icon name="menu" />
         </button>
 
-        <h1 className="text-headline-sm font-headline-sm text-primary">
+        <h1 className="text-headline-sm font-headline-sm text-primary font-black">
           ComunApp
         </h1>
       </div>

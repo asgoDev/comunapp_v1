@@ -20,6 +20,9 @@ export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
 
+  const comunidad = user?.comunidad || {};
+  const myComunity = comunidad?.nombre || '';
+
   const handleLogout = async () => {
     await logout();
     toast.success('Sesión cerrada exitosamente');
@@ -56,7 +59,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <img src={comunas} alt="Logo" className="w-40" />
           </div>
         </div>
-        <p className='text-white uppercase font-bold text-center px-md py-sm border-y border-outline-variant/20'>Urb. Jose L. Chirino</p>
+        {myComunity && <p className='text-white uppercase font-bold text-center px-md py-sm border-y border-outline-variant/20'>{myComunity}</p>}
 
         <nav className="flex-1 px-md py-lg space-y-xs overflow-y-auto">
           {filteredNavigation.map((item) => (

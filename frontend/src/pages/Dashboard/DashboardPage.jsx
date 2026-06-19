@@ -95,6 +95,15 @@ export default function DashboardPage() {
     },
   ].filter((action) => !action.adminOnly || user?.role === 'admin');
 
+  const roleLabel =
+    user?.role === 'admin'
+      ? 'Administrador'
+      : user?.role === 'JEFE_COMUNIDAD'
+        ? 'Jefe de Comunidad'
+        : user?.role === 'LIDER_CALLE'
+          ? 'Líder de Calle'
+          : '';
+
   return (
     <div className="space-y-lg animate-fade-in-up">
       <div className="bg-gradient-to-r from-primary to-primary-container rounded-xl p-8 text-white shadow-lg">
@@ -110,7 +119,7 @@ export default function DashboardPage() {
           </div>
           <div className="hidden md:flex items-center gap-2 bg-white/15 px-4 py-2 rounded-lg backdrop-blur-sm">
             <Icon name="verified_user" size="20px" />
-            <span className="text-label-lg font-bold uppercase">{user?.role}</span>
+            <span className="text-label-lg font-bold uppercase">{roleLabel}</span>
           </div>
         </div>
       </div>
