@@ -58,10 +58,21 @@ export default function UserFormPage() {
   const showComunidad = ROLES_CON_COMUNIDAD.includes(selectedRole);
   const showCalle = ROLES_CON_CALLE.includes(selectedRole);
 
-  if (!currentUser || currentUser.role !== 'admin') {
+  const isAuthorized = currentUser && (currentUser.role === 'admin' || currentUser.role === 'JEFE_COMUNIDAD');
+  const isJefeComunidad = currentUser?.role === 'JEFE_COMUNIDAD';
+
+  if (!currentUser || !isAuthorized) {
     toast.error('No tiene permisos para acceder a esta sección.');
     return <Navigate to="/" replace />;
   }
+
+  // Set default role and community for Jefe de Comunidad on mount
+  useEffect(() => {
+    if (!isEditMode && isJefeComunidad) {
+      setValue('role', 'LIDER_CALLE');
+      setValue('comunidad', currentUser.comunidad?._id || currentUser.comunidad || '');
+    }
+  }, [isJefeComunidad, isEditMode, currentUser, setValue]);
 
   // Cargar lista de comunidades activas al montar
   useEffect(() => {
@@ -96,6 +107,15 @@ export default function UserFormPage() {
     if (isEditMode) {
       fetchUserById(id)
         .then((userData) => {
+          if (isJefeComunidad) {
+            const jefeComId = currentUser.comunidad?._id || currentUser.comunidad;
+            const userComId = userData.comunidad?._id || userData.comunidad;
+            if (userData.role !== 'LIDER_CALLE' || userComId?.toString() !== jefeComId?.toString()) {
+              toast.error('No tiene permisos para editar este usuario.');
+              navigate('/usuarios');
+              return;
+            }
+          }
           reset({
             nombre: userData.nombre || '',
             apellido: userData.apellido || '',
@@ -129,7 +149,7 @@ export default function UserFormPage() {
           navigate('/usuarios');
         });
     }
-  }, [id, isEditMode, fetchUserById, navigate, reset]);
+  }, [id, isEditMode, fetchUserById, navigate, reset, isJefeComunidad, currentUser]);
 
   const handleTelefonoChange = (e) => {
     let val = e.target.value.replace(/\D/g, '');
@@ -184,13 +204,17 @@ export default function UserFormPage() {
   };
 
   const getPageTitle = () => {
-    if (isEditMode) return 'Actualizar Información del Usuario';
-    return 'Registro de Nuevo Usuario';
+    if (isEditMode) {
+      return isJefeComunidad ? 'Actualizar Información del Líder de Calle' : 'Actualizar Información del Usuario';
+    }
+    return isJefeComunidad ? 'Registro de Nuevo Líder de Calle' : 'Registro de Nuevo Usuario';
   };
 
   const getPageSubtitle = () => {
     if (isEditMode) return 'Modifique los campos necesarios para actualizar la cuenta.';
-    return 'Complete todos los campos para crear una cuenta con privilegios en la plataforma.';
+    return isJefeComunidad
+      ? 'Complete todos los campos para crear un líder de calle en su comunidad.'
+      : 'Complete todos los campos para crear una cuenta con privilegios en la plataforma.';
   };
 
   const getPageIcon = () => {
@@ -207,7 +231,7 @@ export default function UserFormPage() {
           className="hover:text-primary flex items-center gap-xs font-label-lg text-label-lg transition-colors cursor-pointer"
         >
           <Icon name="arrow_back" size="18px" />
-          <span>Volver a Usuarios</span>
+          <span>{isJefeComunidad ? 'Volver a Líderes de Calle' : 'Volver a Usuarios'}</span>
         </button>
       </div>
 
@@ -358,41 +382,60 @@ export default function UserFormPage() {
             />
 
             {/* Rol de Usuario */}
-            <div className="space-y-1">
-              <label className="block text-label-lg font-label-lg text-on-surface-variant">
-                Rol del Usuario <span className="text-error font-bold">*</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
-                  <Icon name="admin_panel_settings" size="20px" />
-                </span>
-                <select
-                  className={`
-                    w-full bg-surface-container-low border rounded-lg
-                    pl-10 pr-10 py-3 text-body-md text-on-surface
-                    font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
-                    transition-all duration-200 appearance-none cursor-pointer
-                    ${errors.role ? 'border-error focus:ring-error/30 focus:border-error' : 'border-outline-variant/40 hover:border-outline'}
-                  `}
-                  required
-                  {...register('role')}
-                >
-                  <option value="" disabled>Seleccione un rol...</option>
-                  <option value="admin">Administrador</option>
-                  <option value="JEFE_COMUNIDAD">Jefe de Comunidad</option>
-                  <option value="LIDER_CALLE">Líder de Calle</option>
-                </select>
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
-                  <Icon name="arrow_drop_down" />
-                </span>
+            {!isJefeComunidad ? (
+              <div className="space-y-1">
+                <label className="block text-label-lg font-label-lg text-on-surface-variant">
+                  Rol del Usuario <span className="text-error font-bold">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                    <Icon name="admin_panel_settings" size="20px" />
+                  </span>
+                  <select
+                    className={`
+                      w-full bg-surface-container-low border rounded-lg
+                      pl-10 pr-10 py-3 text-body-md text-on-surface
+                      font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
+                      transition-all duration-200 appearance-none cursor-pointer
+                      ${errors.role ? 'border-error focus:ring-error/30 focus:border-error' : 'border-outline-variant/40 hover:border-outline'}
+                    `}
+                    required
+                    {...register('role')}
+                  >
+                    <option value="" disabled>Seleccione un rol...</option>
+                    <option value="admin">Administrador</option>
+                    <option value="JEFE_COMUNIDAD">Jefe de Comunidad</option>
+                    <option value="LIDER_CALLE">Líder de Calle</option>
+                  </select>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                    <Icon name="arrow_drop_down" />
+                  </span>
+                </div>
+                {errors.role && (
+                  <p className="text-label-sm text-error flex items-center gap-1 mt-1">
+                    <Icon name="error" size="14px" />
+                    {errors.role.message}
+                  </p>
+                )}
               </div>
-              {errors.role && (
-                <p className="text-label-sm text-error flex items-center gap-1 mt-1">
-                  <Icon name="error" size="14px" />
-                  {errors.role.message}
-                </p>
-              )}
-            </div>
+            ) : (
+              <div className="space-y-1">
+                <label className="block text-label-lg font-label-lg text-on-surface-variant">
+                  Rol del Usuario
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                    <Icon name="admin_panel_settings" size="20px" />
+                  </span>
+                  <input
+                    type="text"
+                    value="Líder de Calle"
+                    disabled
+                    className="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-10 pr-4 py-3 text-body-md text-on-surface font-montserrat disabled:opacity-50"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Estado (solo en edición) */}
             {isEditMode && (
@@ -429,42 +472,61 @@ export default function UserFormPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
 
                 {/* Selector de Comunidad */}
-                <div className="space-y-1">
-                  <label className="block text-label-lg font-label-lg text-on-surface-variant">
-                    Comunidad <span className="text-error font-bold">*</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
-                      <Icon name="home_work" size="20px" />
-                    </span>
-                    <select
-                      className={`
-                        w-full bg-surface-container-low border rounded-lg
-                        pl-10 pr-10 py-3 text-body-md text-on-surface
-                        font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
-                        transition-all duration-200 appearance-none cursor-pointer
-                        ${errors.comunidad ? 'border-error focus:ring-error/30 focus:border-error' : 'border-outline-variant/40 hover:border-outline'}
-                      `}
-                      {...register('comunidad')}
-                    >
-                      <option value="">Seleccione una comunidad...</option>
-                      {comunidades.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c.nombre} — {c.municipio}, {c.estado}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
-                      <Icon name="arrow_drop_down" />
-                    </span>
+                {!isJefeComunidad ? (
+                  <div className="space-y-1">
+                    <label className="block text-label-lg font-label-lg text-on-surface-variant">
+                      Comunidad <span className="text-error font-bold">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                        <Icon name="home_work" size="20px" />
+                      </span>
+                      <select
+                        className={`
+                          w-full bg-surface-container-low border rounded-lg
+                          pl-10 pr-10 py-3 text-body-md text-on-surface
+                          font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
+                          transition-all duration-200 appearance-none cursor-pointer
+                          ${errors.comunidad ? 'border-error focus:ring-error/30 focus:border-error' : 'border-outline-variant/40 hover:border-outline'}
+                        `}
+                        {...register('comunidad')}
+                      >
+                        <option value="">Seleccione una comunidad...</option>
+                        {comunidades.map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.nombre} — {c.municipio}, {c.estado}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                        <Icon name="arrow_drop_down" />
+                      </span>
+                    </div>
+                    {errors.comunidad && (
+                      <p className="text-label-sm text-error flex items-center gap-1 mt-1">
+                        <Icon name="error" size="14px" />
+                        {errors.comunidad.message}
+                      </p>
+                    )}
                   </div>
-                  {errors.comunidad && (
-                    <p className="text-label-sm text-error flex items-center gap-1 mt-1">
-                      <Icon name="error" size="14px" />
-                      {errors.comunidad.message}
-                    </p>
-                  )}
-                </div>
+                ) : (
+                  <div className="space-y-1">
+                    <label className="block text-label-lg font-label-lg text-on-surface-variant">
+                      Comunidad
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                        <Icon name="home_work" size="20px" />
+                      </span>
+                      <input
+                        type="text"
+                        value={currentUser.comunidad?.nombre || ''}
+                        disabled
+                        className="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-10 pr-4 py-3 text-body-md text-on-surface font-montserrat disabled:opacity-50"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Input de Calle (solo LIDER_CALLE) */}
                 {showCalle && (
@@ -528,7 +590,7 @@ export default function UserFormPage() {
               icon={<Icon name="save" size="20px" />}
               className="active:scale-95 transition-all px-lg"
             >
-              {isEditMode ? 'Guardar Cambios' : 'Registrar Usuario'}
+              {isEditMode ? 'Guardar Cambios' : (isJefeComunidad ? 'Registrar Líder de Calle' : 'Registrar Usuario')}
             </Button>
           </div>
 

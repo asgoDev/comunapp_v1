@@ -17,6 +17,7 @@ export default function ComunidadResumenPage() {
   const [loading, setLoading] = useState(true);
 
   const isAdmin = currentUser?.role === 'admin';
+  const isJefeComunidad = currentUser?.role === 'JEFE_COMUNIDAD';
 
   useEffect(() => {
     let active = true;
@@ -97,11 +98,11 @@ export default function ComunidadResumenPage() {
       {/* Breadcrumb */}
       <div className="flex items-center justify-between text-on-surface-variant">
         <button
-          onClick={() => navigate('/comunidades')}
+          onClick={() => navigate(isJefeComunidad ? '/' : '/comunidades')}
           className="hover:text-primary flex items-center gap-xs font-label-lg text-label-lg transition-colors cursor-pointer group"
         >
           <Icon name="arrow_back" size="18px" className="group-hover:-translate-x-1 transition-transform" />
-          <span>Volver a Comunidades</span>
+          <span>{isJefeComunidad ? 'Volver al Inicio' : 'Volver a Comunidades'}</span>
         </button>
 
         {isAdmin && (
@@ -219,10 +220,10 @@ export default function ComunidadResumenPage() {
         <div className="bg-surface-container-low px-lg py-md border-t border-outline-variant/10 flex justify-end gap-md">
           <Button
             variant="outline"
-            onClick={() => navigate('/comunidades')}
+            onClick={() => navigate(isJefeComunidad ? '/' : '/comunidades')}
             className="active:scale-95 transition-all"
           >
-            Cerrar Resumen
+            {isJefeComunidad ? 'Volver al Inicio' : 'Cerrar Resumen'}
           </Button>
           {isAdmin && (
             <Button

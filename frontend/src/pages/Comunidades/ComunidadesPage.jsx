@@ -18,6 +18,10 @@ export default function ComunidadesPage() {
     return <Navigate to="/" replace />;
   }
 
+  if (currentUser.role === 'JEFE_COMUNIDAD') {
+    return <Navigate to={`/comunidades/${currentUser.comunidad?._id || currentUser.comunidad}/resumen`} replace />;
+  }
+
   const { comunidades, pagination, isLoading, fetchComunidades, deleteComunidad } = useComunidadStore();
 
   const [searchQuery, setSearchQuery] = useState('');

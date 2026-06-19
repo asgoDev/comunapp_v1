@@ -11,7 +11,8 @@ export default function UsersPage() {
   const navigate = useNavigate();
   const currentUser = useAuthStore((s) => s.user);
 
-  if (!currentUser || currentUser.role !== 'admin') {
+  const isAuthorized = currentUser && (currentUser.role === 'admin' || currentUser.role === 'JEFE_COMUNIDAD');
+  if (!currentUser || !isAuthorized) {
     toast.error('No tiene permisos para acceder a esta sección.');
     return <Navigate to="/" replace />;
   }
@@ -24,6 +25,7 @@ export default function UsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const isAdmin = currentUser?.role === 'admin';
+  const isJefeComunidad = currentUser?.role === 'JEFE_COMUNIDAD';
 
   // Cargar usuarios cuando cambia la página o los filtros
   useEffect(() => {
@@ -57,7 +59,7 @@ export default function UsersPage() {
 
   // Toggle del estado de un usuario (activar / desactivar)
   const handleToggleEstado = async (user) => {
-    if (!isAdmin) return;
+    if (!isAdmin && !isJefeComunidad) return;
 
     if (user._id === currentUser._id) {
       toast.error('No puede modificar el estado de su propia cuenta.');
@@ -138,26 +140,30 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-md">
         <div>
-          <h2 className="text-headline-lg font-headline-lg text-primary">Gestión de Usuarios</h2>
+          <h2 className="text-headline-lg font-headline-lg text-primary">
+            {isJefeComunidad ? 'Líderes de Calle' : 'Gestión de Usuarios'}
+          </h2>
           <p className="text-body-sm text-on-surface-variant">
-            Administración y control de accesos al sistema institucional.
+            {isJefeComunidad
+              ? 'Administración de líderes de calle de su comunidad.'
+              : 'Administración y control de accesos al sistema institucional.'}
           </p>
         </div>
 
-        {isAdmin && (
+        {(isAdmin || isJefeComunidad) && (
           <Button
             onClick={() => navigate('/usuarios/nuevo')}
             icon={<Icon name="person_add" size="20px" />}
             className="shadow-sm active:scale-95 transition-all self-start md:self-auto"
           >
-            Nuevo Usuario
+            {isJefeComunidad ? 'Nuevo Líder de Calle' : 'Nuevo Usuario'}
           </Button>
         )}
       </div>
 
       {/* Tarjeta de Filtros y Búsqueda */}
       <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/10 shadow-sm space-y-md">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
+        <div className={`grid grid-cols-1 ${isJefeComunidad ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-md`}>
           {/* Búsqueda */}
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
@@ -171,30 +177,32 @@ export default function UsersPage() {
               className="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-10 pr-4 py-2 text-body-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             />
           </div>
-
+ 
           {/* Filtro por Rol */}
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
-              <Icon name="badge" size="20px" />
-            </span>
-            <select
-              value={roleFilter}
-              onChange={(e) => {
-                setRoleFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-10 pr-4 py-2 text-body-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
-            >
-              <option value="">Todos los Roles</option>
-              <option value="admin">Administrador</option>
-              <option value="JEFE_COMUNIDAD">Jefe de Comunidad</option>
-              <option value="LIDER_CALLE">Líder de Calle</option>
-            </select>
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
-              <Icon name="arrow_drop_down" />
-            </span>
-          </div>
-
+          {!isJefeComunidad && (
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                <Icon name="badge" size="20px" />
+              </span>
+              <select
+                value={roleFilter}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-10 pr-4 py-2 text-body-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
+              >
+                <option value="">Todos los Roles</option>
+                <option value="admin">Administrador</option>
+                <option value="JEFE_COMUNIDAD">Jefe de Comunidad</option>
+                <option value="LIDER_CALLE">Líder de Calle</option>
+              </select>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                <Icon name="arrow_drop_down" />
+              </span>
+            </div>
+          )}
+ 
           {/* Filtro por Estado */}
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
@@ -245,7 +253,7 @@ export default function UsersPage() {
                   <th className="py-md px-lg">Cédula</th>
                   <th className="py-md px-lg">Rol</th>
                   <th className="py-md px-lg">Estado</th>
-                  {isAdmin && <th className="py-md px-lg text-right">Acciones</th>}
+                  {(isAdmin || isJefeComunidad) && <th className="py-md px-lg text-right">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10 text-body-sm text-on-surface">
@@ -267,7 +275,7 @@ export default function UsersPage() {
                       <td className="py-md px-lg font-medium text-on-surface">{user.cedula}</td>
                       <td className="py-md px-lg">{renderRoleBadge(user.role)}</td>
                       <td className="py-md px-lg">{renderEstadoBadge(user.estado)}</td>
-                      {isAdmin && (
+                       {(isAdmin || isJefeComunidad) && (
                         <td className="py-md px-lg text-right">
                           <button
                             onClick={(e) => {

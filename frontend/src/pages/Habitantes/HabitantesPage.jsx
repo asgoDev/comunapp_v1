@@ -21,15 +21,19 @@ export default function HabitantesPage() {
   const [selectedCalle, setSelectedCalle] = useState(isLiderCalle ? userCalle : '');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Cargar habitantes al seleccionar una calle
+  // Cargar habitantes al cambiar selectedCalle o al montar
   useEffect(() => {
+    if (isLiderCalle && !userCalle) return;
+
+    const filters = {};
     if (selectedCalle) {
-      fetchHabitantes(1, { calle: selectedCalle, limit: 250 }).catch((err) => {
-        console.error(err);
-        toast.error('Error al cargar la lista de habitantes.');
-      });
+      filters.calle = selectedCalle;
     }
-  }, [fetchHabitantes, selectedCalle]);
+    fetchHabitantes(1, { ...filters, limit: 250 }).catch((err) => {
+      console.error(err);
+      toast.error('Error al cargar la lista de habitantes.');
+    });
+  }, [fetchHabitantes, selectedCalle, isLiderCalle, userCalle]);
 
   // Filtrar habitantes localmente por búsqueda
   const filteredHabitantes = habitantes.filter((h) => {
@@ -43,15 +47,26 @@ export default function HabitantesPage() {
     return fullName.includes(term) || cedula.includes(term) || numeroCasa.includes(term);
   });
 
-  // Agrupar por casa
+  const uniqueCalles = Array.from(
+    new Set([
+      ...CALLES_FIJAS,
+      ...habitantes.map((h) => h.calle).filter(Boolean)
+    ])
+  ).sort();
+
+  // Agrupar por calle y casa para evitar duplicados en calles diferentes
   const casas = Object.entries(
     filteredHabitantes.reduce((acc, h) => {
-      const key = h.numeroCasa || 'Sin Número';
+      const key = `${h.calle || 'Sin Calle'}|||${h.numeroCasa || 'Sin Número'}`;
       if (!acc[key]) acc[key] = [];
       acc[key].push(h);
       return acc;
     }, {})
-  ).sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+  ).sort(([a], [b]) => {
+    const [, aNum] = a.split('|||');
+    const [, bNum] = b.split('|||');
+    return aNum.localeCompare(bNum, undefined, { numeric: true });
+  });
 
   const handleCreateNew = () => {
     // Redirige a /habitantes/nuevo
@@ -106,8 +121,8 @@ export default function HabitantesPage() {
                 onChange={(e) => setSelectedCalle(e.target.value)}
                 className="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-10 pr-10 py-2.5 text-body-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
               >
-                <option value="">Seleccione una calle...</option>
-                {CALLES_FIJAS.map((c) => (
+                <option value="">{isLiderCalle ? 'Seleccione una calle...' : 'Todas las calles'}</option>
+                {uniqueCalles.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
@@ -118,7 +133,7 @@ export default function HabitantesPage() {
               </span>
             </div>
           )}
-
+ 
           {/* Búsqueda */}
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
@@ -129,7 +144,7 @@ export default function HabitantesPage() {
               placeholder="Buscar por nombre, apellido, cédula o casa..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              disabled={!selectedCalle}
+              disabled={isLiderCalle && !selectedCalle}
               className="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-10 pr-4 py-2.5 text-body-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50"
             />
           </div>
@@ -137,7 +152,7 @@ export default function HabitantesPage() {
       </div>
 
       {/* Grid de Casas */}
-      {!selectedCalle ? (
+      {(isLiderCalle && !selectedCalle) ? (
         <div className="p-xl bg-surface-container-lowest rounded-xl border border-outline-variant/10 shadow-sm text-center">
           <div className="w-16 h-16 mx-auto rounded-full bg-outline-variant/10 text-outline flex items-center justify-center mb-sm">
             <Icon name="signpost" size="36px" />
@@ -164,13 +179,14 @@ export default function HabitantesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-lg">
-          {casas.map(([casaNum, integrantes]) => {
+          {casas.map(([compoundKey, integrantes]) => {
+            const [calleName, casaNum] = compoundKey.split('|||');
             const count = integrantes.length;
             const jefe = integrantes.find((h) => h.jefeFamilia);
             return (
               <div
-                key={casaNum}
-                onClick={() => navigate(`/habitantes/casa/${casaNum}?calle=${encodeURIComponent(selectedCalle)}`)}
+                key={compoundKey}
+                onClick={() => navigate(`/habitantes/casa/${casaNum}?calle=${encodeURIComponent(calleName)}`)}
                 className="bg-surface-container-lowest hover:bg-primary-container/5 rounded-xl border border-outline-variant/20 hover:border-primary/30 p-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group"
               >
                 <div className="flex justify-between items-start mb-md">
@@ -180,7 +196,7 @@ export default function HabitantesPage() {
                     </div>
                     <div>
                       <h4 className="font-bold text-headline-sm text-on-surface">Casa N.º {casaNum}</h4>
-                      <p className="text-body-xs text-on-surface-variant mt-0.5">{selectedCalle}</p>
+                      <p className="text-body-xs text-on-surface-variant mt-0.5">{calleName}</p>
                     </div>
                   </div>
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-secondary/10 text-secondary border border-secondary/20">

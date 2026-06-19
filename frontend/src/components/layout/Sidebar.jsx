@@ -9,7 +9,7 @@ const navigation = [
   { name: 'Dashboard', icon: 'dashboard', path: '/', roles: ['admin', 'JEFE_COMUNIDAD', 'LIDER_CALLE'] },
   { name: 'Comunidades', icon: 'home_work', path: '/comunidades', roles: ['admin', 'JEFE_COMUNIDAD'] },
   { name: 'Habitantes', icon: 'groups', path: '/habitantes', roles: ['admin', 'JEFE_COMUNIDAD', 'LIDER_CALLE'] },
-  { name: 'Usuarios', icon: 'admin_panel_settings', path: '/usuarios', roles: ['admin'] },
+  { name: 'Usuarios', icon: 'admin_panel_settings', path: '/usuarios', roles: ['admin', 'JEFE_COMUNIDAD'] },
   { name: 'Auditoría', icon: 'history', path: '/auditoria', roles: ['admin'] },
 ];
 
@@ -29,9 +29,27 @@ export default function Sidebar({ isOpen, onClose }) {
     navigate('/login');
   };
 
-  const filteredNavigation = navigation.filter((item) =>
-    !item.roles || item.roles.includes(user?.role)
-  );
+  const filteredNavigation = navigation
+    .filter((item) => !item.roles || item.roles.includes(user?.role))
+    .map((item) => {
+      if (user?.role === 'JEFE_COMUNIDAD') {
+        if (item.path === '/comunidades') {
+          return {
+            ...item,
+            name: 'Mi Comunidad',
+            path: `/comunidades/${user?.comunidad?._id || user?.comunidad}/resumen`,
+          };
+        }
+        if (item.path === '/usuarios') {
+          return {
+            ...item,
+            name: 'Líderes de Calle',
+            icon: 'supervisor_account',
+          };
+        }
+      }
+      return item;
+    });
 
   return (
     <>

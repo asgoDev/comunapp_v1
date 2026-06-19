@@ -7,7 +7,7 @@ import { createUserSchema, updateUserSchema } from "./user.validation.js";
 const router = Router();
 
 router.use(authenticate);
-router.use(authorize("admin"));
+router.use(authorize("admin", "JEFE_COMUNIDAD"));
 
 router.get("/", userController.getUsers);
 router.get("/:id", userController.getUserById);

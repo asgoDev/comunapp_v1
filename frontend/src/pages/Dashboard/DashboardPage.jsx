@@ -37,63 +37,124 @@ export default function DashboardPage() {
     return 'Buenas noches';
   };
 
-  const statCards = [
-    {
-      label: 'Usuarios registrados',
-      value: isLoading ? '—' : stats.usersCount,
-      icon: 'group',
-      trend: 'Total en el sistema',
-      colorClass:
-        'text-primary bg-primary-container/10 group-hover:bg-primary-container group-hover:text-white',
-    },
-    {
-      label: 'Usuarios activos',
-      value: isLoading ? '—' : stats.activeUsersCount,
-      icon: 'verified_user',
-      trend: 'Cuentas con estado activo',
-      colorClass:
-        'text-secondary bg-secondary-container/20 group-hover:bg-secondary group-hover:text-white',
-    },
-    {
-      label: 'Eventos de auditoría',
-      value: isLoading ? '—' : stats.auditCount,
-      icon: 'history',
-      trend: 'Acciones registradas',
-      colorClass:
-        'text-tertiary bg-tertiary-fixed-dim/20 group-hover:bg-tertiary group-hover:text-white',
-    },
-  ];
+  const getStatCards = () => {
+    if (user?.role === 'admin') {
+      return [
+        {
+          label: 'Usuarios registrados',
+          value: isLoading ? '—' : stats.usersCount,
+          icon: 'group',
+          trend: 'Total en el sistema',
+          colorClass: 'text-primary bg-primary-container/10 group-hover:bg-primary-container group-hover:text-white',
+        },
+        {
+          label: 'Usuarios activos',
+          value: isLoading ? '—' : stats.activeUsersCount,
+          icon: 'verified_user',
+          trend: 'Cuentas con estado activo',
+          colorClass: 'text-secondary bg-secondary-container/20 group-hover:bg-secondary group-hover:text-white',
+        },
+        {
+          label: 'Eventos de auditoría',
+          value: isLoading ? '—' : stats.auditCount,
+          icon: 'history',
+          trend: 'Acciones registradas',
+          colorClass: 'text-tertiary bg-tertiary-fixed-dim/20 group-hover:bg-tertiary group-hover:text-white',
+        },
+      ];
+    }
+
+    if (user?.role === 'JEFE_COMUNIDAD') {
+      return [
+        {
+          label: 'Líderes de calle',
+          value: isLoading ? '—' : stats.usersCount,
+          icon: 'supervisor_account',
+          trend: 'Líderes de calle en la comunidad',
+          colorClass: 'text-primary bg-primary-container/10 group-hover:bg-primary-container group-hover:text-white',
+        },
+        {
+          label: 'Líderes activos',
+          value: isLoading ? '—' : stats.activeUsersCount,
+          icon: 'verified_user',
+          trend: 'Líderes con estado activo',
+          colorClass: 'text-secondary bg-secondary-container/20 group-hover:bg-secondary group-hover:text-white',
+        },
+        {
+          label: 'Habitantes registrados',
+          value: isLoading ? '—' : stats.auditCount,
+          icon: 'groups',
+          trend: 'Total de personas en la comunidad',
+          colorClass: 'text-tertiary bg-tertiary-fixed-dim/20 group-hover:bg-tertiary group-hover:text-white',
+        },
+      ];
+    }
+
+    // LIDER_CALLE
+    return [
+      {
+        label: 'Mis Habitantes',
+        value: isLoading ? '—' : stats.usersCount,
+        icon: 'groups',
+        trend: 'Personas registradas en mi calle',
+        colorClass: 'text-primary bg-primary-container/10 group-hover:bg-primary-container group-hover:text-white',
+      },
+      {
+        label: 'Casas registradas',
+        value: isLoading ? '—' : stats.activeUsersCount,
+        icon: 'home',
+        trend: 'Viviendas en mi calle',
+        colorClass: 'text-secondary bg-secondary-container/20 group-hover:bg-secondary group-hover:text-white',
+      },
+      {
+        label: 'Jefes de familia',
+        value: isLoading ? '—' : stats.auditCount,
+        icon: 'family_restroom',
+        trend: 'Jefes de familia registrados',
+        colorClass: 'text-tertiary bg-tertiary-fixed-dim/20 group-hover:bg-tertiary group-hover:text-white',
+      },
+    ];
+  };
+
+  const statCards = getStatCards();
 
   const quickActions = [
     {
       icon: 'person_add',
-      title: 'Nuevo usuario',
-      desc: 'Registrar cuenta (solo admin)',
+      title: user?.role === 'JEFE_COMUNIDAD' ? 'Nuevo Líder de Calle' : 'Nuevo usuario',
+      desc: user?.role === 'JEFE_COMUNIDAD' ? 'Registrar líder de calle' : 'Registrar cuenta',
       path: '/usuarios/nuevo',
-      adminOnly: true,
+      allowedRoles: ['admin', 'JEFE_COMUNIDAD'],
     },
     {
       icon: 'group',
-      title: 'Gestionar usuarios',
+      title: user?.role === 'JEFE_COMUNIDAD' ? 'Gestionar Líderes' : 'Gestionar usuarios',
       desc: 'Listado y edición',
       path: '/usuarios',
-      adminOnly: true,
+      allowedRoles: ['admin', 'JEFE_COMUNIDAD'],
+    },
+    {
+      icon: 'groups',
+      title: 'Gestionar Habitantes',
+      desc: 'Registros de viviendas y residentes',
+      path: '/habitantes',
+      allowedRoles: ['admin', 'JEFE_COMUNIDAD', 'LIDER_CALLE'],
     },
     {
       icon: 'account_circle',
       title: 'Mi perfil',
       desc: 'Datos de sesión actual',
       path: '/',
-      adminOnly: false,
+      allowedRoles: ['admin', 'JEFE_COMUNIDAD', 'LIDER_CALLE'],
     },
     {
       icon: 'shield',
       title: 'Auditoría',
       desc: 'Registro de acciones del sistema',
       path: '/auditoria',
-      adminOnly: true,
+      allowedRoles: ['admin'],
     },
-  ].filter((action) => !action.adminOnly || user?.role === 'admin');
+  ].filter((action) => action.allowedRoles.includes(user?.role));
 
   const roleLabel =
     user?.role === 'admin'
