@@ -227,6 +227,22 @@ export default function DashboardPage() {
           </Link>
         ))}
       </div>
+      {/* Info Card */}
+      <div className="bg-surface-container-lowest rounded-xl p-lg shadow-sm border border-outline-variant/10">
+        <div className="flex items-start gap-md">
+          <div className="p-sm bg-secondary-container/20 rounded-lg text-secondary flex-shrink-0">
+            <Icon name="info" />
+          </div>
+          <div>
+            <h4 className="text-label-lg font-bold text-on-surface mb-1">Sistema en Desarrollo</h4>
+            <p className="text-body-sm text-on-surface-variant mb-1">
+              Este sistema es un proyecto personal y no está avalado por ninguna institución gubernamental.
+              Por favor, reporte cualquier error o comportamiento inesperado.
+            </p>
+            <p className="text-body-sm text-on-surface-variant md:text-right"><span className='font-bold'>Ing. Aquiles González</span></p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

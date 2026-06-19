@@ -148,7 +148,7 @@ export default function CasaDetailPage() {
                       <td className="py-md px-lg font-medium text-on-surface">{h.cedula || 'No posee'}</td>
                       <td className="py-md px-lg">
                         {h.fechaNacimiento
-                          ? `${calculateAge(h.fechaNacimiento)} años (${new Date(h.fechaNacimiento).toLocaleDateString('es-VE')})`
+                          ? `${calculateAge(h.fechaNacimiento)} años`
                           : '—'}
                       </td>
                       <td className="py-md px-lg">
