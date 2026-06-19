@@ -17,6 +17,8 @@ import HabitantesPage from './pages/Habitantes/HabitantesPage';
 import CasaDetailPage from './pages/Habitantes/CasaDetailPage';
 import HabitanteFormPage from './pages/Habitantes/HabitanteFormPage';
 import HabitanteDetailPage from './pages/Habitantes/HabitanteDetailPage';
+import HabitantesBulkPage from './pages/Habitantes/HabitantesBulkPage';
+
 
 function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -94,10 +96,12 @@ function App() {
           <Route path="comunidades/:id" element={<ComunidadFormPage />} />
           <Route path="comunidades/:id/resumen" element={<ComunidadResumenPage />} />
           <Route path="habitantes" element={<HabitantesPage />} />
+          <Route path="habitantes/carga-masiva" element={<HabitantesBulkPage />} />
           <Route path="habitantes/nuevo" element={<HabitanteFormPage />} />
           <Route path="habitantes/casa/:numero" element={<CasaDetailPage />} />
           <Route path="habitantes/:id" element={<HabitanteDetailPage />} />
           <Route path="habitantes/:id/editar" element={<HabitanteFormPage />} />
+
           <Route path="auditoria" element={<AuditoriaPage />} />
         </Route>
       </Route>

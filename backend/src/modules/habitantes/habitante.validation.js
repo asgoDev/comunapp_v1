@@ -3,6 +3,54 @@ import { z } from "zod";
 const OBJECT_ID_REGEX = /^[a-f\d]{24}$/i;
 const CEDULA_REGEX = /^[VE]-\d{6,9}$/i;
 
+// Schema base de un habitante (para reutilizar en bulk)
+const habitanteItemSchema = z.object({
+  numeroCasa: z
+    .string({ required_error: "El número de casa es requerido" })
+    .trim()
+    .min(1, "El número de casa no puede estar vacío"),
+
+  nombres: z
+    .string({ required_error: "Los nombres son requeridos" })
+    .trim()
+    .min(1, "Los nombres no pueden estar vacíos")
+    .max(100, "Los nombres no pueden superar 100 caracteres"),
+
+  apellidos: z
+    .string({ required_error: "Los apellidos son requeridos" })
+    .trim()
+    .min(1, "Los apellidos no pueden estar vacíos")
+    .max(100, "Los apellidos no pueden superar 100 caracteres"),
+
+  cedula: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(CEDULA_REGEX, "Formato de cédula inválido. Use V-12345678 o E-12345678")
+    .nullable()
+    .optional(),
+
+  fechaNacimiento: z
+    .string()
+    .date("Formato de fecha inválido. Use YYYY-MM-DD")
+    .nullable()
+    .optional(),
+
+  jefeFamilia: z.boolean().default(false),
+
+  discapacitado: z.string().trim().nullable().optional(),
+
+  // En bulk, comunidad y calle son OBLIGATORIOS (siempre viene del admin)
+  comunidad: z
+    .string({ required_error: "La comunidad es requerida" })
+    .regex(OBJECT_ID_REGEX, "ID de comunidad inválido"),
+
+  calle: z
+    .string({ required_error: "La calle es requerida" })
+    .trim()
+    .min(1, "La calle no puede estar vacía"),
+});
+
 // ── Schemas exportados ────────────────────────────────────────────────────────
 
 /**
@@ -39,8 +87,10 @@ export const createHabitanteSchema = z.object({
 
   // Sin restricción de mayoría de edad
   fechaNacimiento: z
-    .string({ required_error: "La fecha de nacimiento es requerida" })
-    .date("Formato de fecha inválido. Use YYYY-MM-DD"),
+    .string()
+    .date("Formato de fecha inválido. Use YYYY-MM-DD")
+    .nullable()
+    .optional(),
 
   jefeFamilia: z.boolean().default(false),
 
@@ -86,3 +136,14 @@ export const updateHabitanteSchema = z
   .refine((data) => Object.keys(data).filter((k) => data[k] !== undefined).length > 0, {
     message: "Debe enviar al menos un campo para actualizar",
   });
+
+/**
+ * Carga masiva de habitantes (solo admin).
+ * Recibe un array de hasta 500 objetos con comunidad y calle obligatorios.
+ */
+export const bulkCreateHabitantesSchema = z.object({
+  habitantes: z
+    .array(habitanteItemSchema, { required_error: "El array de habitantes es requerido" })
+    .min(1, "Debe enviar al menos un habitante")
+    .max(500, "El lote no puede superar 500 habitantes"),
+});

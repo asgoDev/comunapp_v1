@@ -35,7 +35,7 @@ const habitanteSchema = new mongoose.Schema(
     },
     fechaNacimiento: {
       type: Date,
-      required: [true, "La fecha de nacimiento es requerida"],
+      default: null,
     },
 
     // ── Datos adicionales ──────────────────────────────────────────────────

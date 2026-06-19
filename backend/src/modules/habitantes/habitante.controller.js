@@ -82,6 +82,33 @@ class HabitanteController {
       next(error);
     }
   }
+
+  /**
+   * POST /api/habitantes/bulk
+   * Solo ADMIN.
+   * Carga masiva: procesa todos los habitants del lote y devuelve un resumen
+   * indicando cuántos se crearon y cuáles fallaron (con su motivo).
+   * Responde 201 si todos OK, 207 si hubo errores parciales.
+   */
+  async bulkCreateHabitantes(req, res, next) {
+    try {
+      const resultado = await habitanteService.bulkCreate(
+        req.body.habitantes,
+        req.user.id,
+      );
+
+      const statusCode = resultado.fallidos > 0 ? 207 : 201;
+      res.status(statusCode).json({
+        message:
+          resultado.fallidos === 0
+            ? `${resultado.creadosExitosamente} habitantes cargados exitosamente.`
+            : `Carga parcial: ${resultado.creadosExitosamente} creados, ${resultado.fallidos} con errores.`,
+        ...resultado,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new HabitanteController();

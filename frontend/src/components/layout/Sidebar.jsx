@@ -9,9 +9,11 @@ const navigation = [
   { name: 'Dashboard', icon: 'dashboard', path: '/', roles: ['admin', 'JEFE_COMUNIDAD', 'LIDER_CALLE'] },
   { name: 'Comunidades', icon: 'home_work', path: '/comunidades', roles: ['admin', 'JEFE_COMUNIDAD'] },
   { name: 'Habitantes', icon: 'groups', path: '/habitantes', roles: ['admin', 'JEFE_COMUNIDAD', 'LIDER_CALLE'] },
+  { name: 'Carga Masiva', icon: 'upload_file', path: '/habitantes/carga-masiva', roles: ['admin'] },
   { name: 'Usuarios', icon: 'admin_panel_settings', path: '/usuarios', roles: ['admin', 'JEFE_COMUNIDAD'] },
   { name: 'Auditoría', icon: 'history', path: '/auditoria', roles: ['admin'] },
 ];
+
 
 /**
  * Sidebar de navegación principal.

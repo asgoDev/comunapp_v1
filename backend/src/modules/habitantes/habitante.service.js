@@ -347,6 +347,92 @@ class HabitanteService {
    * @param {string} id
    * @param {string} authenticatedUserId
    */
+  /**
+   * Carga masiva de habitantes (solo admin).
+   *
+   * Procesa cada habitante de forma independiente: si uno falla no detiene
+   * el lote. Devuelve un resumen con los creados y los que fallaron.
+   *
+   * Validaciones adicionales:
+   *  - Solo admin puede invocar este método.
+   *  - Detecta cédulas duplicadas dentro del mismo lote antes de ir a la BD.
+   *
+   * @param {object[]} habitantesData  Array de objetos ya validados por Zod
+   * @param {string}   authenticatedUserId
+   * @returns {Promise<{ totalRecibidos, creadosExitosamente, fallidos, errores }>}
+   */
+  async bulkCreate(habitantesData, authenticatedUserId) {
+    const authUser = await this._getAuthenticatedUser(authenticatedUserId);
+
+    if (authUser.role !== "admin") {
+      throw new AppError(
+        "Solo un Administrador puede realizar cargas masivas.",
+        403,
+        "FORBIDDEN",
+      );
+    }
+
+    // Detectar cédulas duplicadas dentro del mismo lote
+    const cedulasEnLote = new Map(); // cedula → primer índice donde aparece
+    habitantesData.forEach((h, i) => {
+      if (h.cedula) {
+        const key = `${h.cedula}__${h.comunidad}`;
+        if (cedulasEnLote.has(key)) {
+          // marcar el duplicado pero seguimos — se reportará como error al procesar
+        } else {
+          cedulasEnLote.set(key, i);
+        }
+      }
+    });
+
+    const errores = [];
+    let creadosExitosamente = 0;
+
+    for (let i = 0; i < habitantesData.length; i++) {
+      const data = habitantesData[i];
+      try {
+        // Verificar si esta cédula ya fue usada en una fila anterior del mismo lote
+        if (data.cedula) {
+          const key = `${data.cedula}__${data.comunidad}`;
+          if (cedulasEnLote.get(key) !== i) {
+            throw new Error(
+              `Cédula "${data.cedula}" duplicada dentro del lote (ya aparece en la fila ${cedulasEnLote.get(key) + 1}).`,
+            );
+          }
+        }
+
+        // Validar unicidad de cédula contra la BD
+        await this._assertCedulaUnique(data.cedula, data.comunidad);
+
+        await Habitante.create({
+          ...data,
+          registradoPor: authUser._id,
+        });
+
+        creadosExitosamente++;
+      } catch (err) {
+        errores.push({
+          fila: i + 1,
+          habitante: {
+            nombres: data.nombres,
+            apellidos: data.apellidos,
+            cedula: data.cedula ?? null,
+            numeroCasa: data.numeroCasa,
+            calle: data.calle,
+          },
+          error: err.message || "Error desconocido",
+        });
+      }
+    }
+
+    return {
+      totalRecibidos: habitantesData.length,
+      creadosExitosamente,
+      fallidos: errores.length,
+      errores,
+    };
+  }
+
   async delete(id, authenticatedUserId) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError(

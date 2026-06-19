@@ -88,4 +88,20 @@ export const useHabitanteStore = create((set) => ({
       throw err;
     }
   },
+
+  bulkCreateHabitantes: async (habitantes) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await habitanteService.bulkCreate(habitantes);
+      set({ isLoading: false });
+      return response.data;
+    } catch (err) {
+      set({
+        error: err.response?.data?.message || 'Error en la carga masiva',
+        isLoading: false,
+      });
+      throw err;
+    }
+  },
 }));
+

@@ -8,7 +8,9 @@ import validate from "../../shared/middleware/validate.js";
 import {
   createHabitanteSchema,
   updateHabitanteSchema,
+  bulkCreateHabitantesSchema,
 } from "./habitante.validation.js";
+
 
 const router = Router();
 
@@ -34,6 +36,15 @@ router.post(
   validate(createHabitanteSchema),
   habitanteController.createHabitante,
 );
+
+// ── Carga masiva: solo ADMIN ────────────────────────────────────────────────────
+router.post(
+  "/bulk",
+  authorize("admin"),
+  validate(bulkCreateHabitantesSchema),
+  habitanteController.bulkCreateHabitantes,
+);
+
 
 // ── Actualización: ADMIN y LIDER_CALLE ───────────────────────────────────────
 router.put(
