@@ -84,6 +84,8 @@ export default {
       },
       fontFamily: {
         montserrat: ['Montserrat', 'sans-serif'],
+        orbitron: ['Orbitron', 'sans-serif'],
+        bungee: ['Bungee', 'cursive'],
         'label-lg': ['Montserrat', 'sans-serif'],
         'label-sm': ['Montserrat', 'sans-serif'],
         'headline-lg': ['Montserrat', 'sans-serif'],

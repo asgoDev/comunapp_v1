@@ -8,6 +8,7 @@ import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import logo from '/mpp_comunas.webp'
+import { Logo } from '../../components/ui/Logo'
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -55,9 +56,10 @@ export default function LoginPage() {
           </div>
 
           <div className="">
-            <h1 className="text-display-lg font-display-lg text-center mb-4">
+            {/* <h1 className="text-display-lg font-display-lg text-center mb-4">
               ComunApp
-            </h1>
+            </h1> */}
+            <Logo />
             <p className="text-body-lg text-center text-white/80 max-w-md leading-relaxed">
               La solución integral para la gestión comunitaria
             </p>
@@ -89,11 +91,13 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6 bg-background">
         <div className="w-full max-w-md animate-fade-in-up">
           {/* Mobile logo */}
-          <div className="lg:hidden flex flex-col items-center mb-8 gap-8">
+          <div className="lg:hidden flex flex-col items-center mb-6 gap-8">
             <div className="w-80 h-30 px-4 py-2 rounded-xl flex items-center justify-center bg-primary text-primary">
               <img src={logo} alt="Logo MPP comunas" className='w-full h-full object-contain' />
             </div>
-            <h1 className="text-4xl font-headline-md text-primary font-black ">ComunApp</h1>
+            {/* <h1 className="text-4xl font-headline-md text-primary font-black ">ComunApp</h1> */}
+            <Logo inverted={true} />
+
           </div>
 
           {/* Header */}
