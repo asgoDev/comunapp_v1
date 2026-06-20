@@ -168,7 +168,7 @@ export default function UsersPage() {
               className="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-10 pr-4 py-2 text-body-sm font-montserrat focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             />
           </div>
- 
+
           {/* Filtro por Rol */}
           {!isJefeComunidad && (
             <div className="relative">
@@ -193,7 +193,7 @@ export default function UsersPage() {
               </span>
             </div>
           )}
- 
+
           {/* Filtro por Estado */}
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
@@ -259,14 +259,14 @@ export default function UsersPage() {
                       <td className="py-md px-lg flex items-center gap-sm">
                         <Avatar name={fullName} size="md" />
                         <div>
-                          <p className="font-bold text-primary">{fullName}</p>
+                          <p className="font-bold text-primary capitalize">{fullName}</p>
                           <p className="text-xs text-on-surface-variant">{user.email}</p>
                         </div>
                       </td>
                       <td className="py-md px-lg font-medium text-on-surface">{user.cedula}</td>
                       <td className="py-md px-lg">{renderRoleBadge(user.role)}</td>
                       <td className="py-md px-lg">{renderEstadoBadge(user.estado)}</td>
-                       {(isAdmin || isJefeComunidad) && (
+                      {(isAdmin || isJefeComunidad) && (
                         <td className="py-md px-lg text-right">
                           <button
                             onClick={(e) => {

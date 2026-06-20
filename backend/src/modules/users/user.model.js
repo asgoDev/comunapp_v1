@@ -17,12 +17,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "El nombre es requerido"],
       trim: true,
+      lowercase: true,
       maxlength: [50, "El nombre no puede superar 50 caracteres"],
     },
     apellido: {
       type: String,
       required: [true, "El apellido es requerido"],
       trim: true,
+      lowercase: true,
       maxlength: [50, "El apellido no puede superar 50 caracteres"],
     },
     cedula: {

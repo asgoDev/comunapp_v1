@@ -5,6 +5,7 @@ import { useHabitantes, useDeleteHabitante } from '../../hooks/useHabitanteQueri
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
+import { calculateAge } from '../../utils/formatters';
 
 export default function CasaDetailPage() {
   const { numero } = useParams();
@@ -45,18 +46,6 @@ export default function CasaDetailPage() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error al eliminar el habitante.');
     }
-  };
-
-  const calculateAge = (dateString) => {
-    if (!dateString) return '';
-    const birthDate = new Date(dateString);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
   };
 
   return (
@@ -142,7 +131,7 @@ export default function CasaDetailPage() {
                       onClick={() => navigate(`/habitantes/${h._id}`)}
                       className="hover:bg-primary-container/5 transition-colors cursor-pointer"
                     >
-                      <td className="py-md px-lg font-bold text-primary">{fullName}</td>
+                      <td className="py-md px-lg font-bold text-primary capitalize">{fullName}</td>
                       <td className="py-md px-lg font-medium text-on-surface">{h.cedula || 'No posee'}</td>
                       <td className="py-md px-lg">
                         {h.fechaNacimiento

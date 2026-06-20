@@ -132,7 +132,7 @@ export default function HabitantesPage() {
               </span>
             </div>
           )}
- 
+
           {/* Búsqueda */}
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-outline">
@@ -208,7 +208,7 @@ export default function HabitantesPage() {
                   {jefe ? (
                     <div className="space-y-0.5">
                       <p className="text-xs text-on-surface-variant font-medium uppercase tracking-wider">Jefe de Familia</p>
-                      <p className="font-semibold text-primary">{jefe.nombres} {jefe.apellidos}</p>
+                      <p className="font-semibold text-primary capitalize">{jefe.nombres} {jefe.apellidos}</p>
                       <p className="text-xs text-on-surface-variant">{jefe.cedula || 'Sin cédula'}</p>
                     </div>
                   ) : (

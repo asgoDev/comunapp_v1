@@ -125,13 +125,6 @@ export default function DashboardPage() {
       path: '/',
       allowedRoles: ['admin', 'JEFE_COMUNIDAD', 'LIDER_CALLE'],
     },
-    {
-      icon: 'shield',
-      title: 'Auditoría',
-      desc: 'Registro de acciones del sistema',
-      path: '/auditoria',
-      allowedRoles: ['admin'],
-    },
   ].filter((action) => action.allowedRoles.includes(user?.role));
 
   const roleLabel =

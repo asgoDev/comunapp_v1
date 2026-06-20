@@ -5,6 +5,7 @@ import { useHabitanteById, useDeleteHabitante } from '../../hooks/useHabitanteQu
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
+import { formatBirthDate, calculateAge } from '../../utils/formatters';
 
 export default function HabitanteDetailPage() {
   const { id } = useParams();
@@ -41,17 +42,7 @@ export default function HabitanteDetailPage() {
     }
   };
 
-  const calculateAge = (dateString) => {
-    if (!dateString) return '';
-    const birthDate = new Date(dateString);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-  };
+
 
   if (isLoading || !habitante) {
     return (
@@ -87,7 +78,7 @@ export default function HabitanteDetailPage() {
               <Icon name="person" size="32px" />
             </div>
             <div>
-              <h2 className="text-headline-md font-headline-md font-bold">{fullName}</h2>
+              <h2 className="text-headline-md font-headline-md font-bold capitalize">{fullName}</h2>
               <p className="text-body-sm text-white/80 mt-0.5">
                 Cédula: {habitante.cedula || 'No posee'}
               </p>
@@ -155,13 +146,13 @@ export default function HabitanteDetailPage() {
               <div className="space-y-md">
                 <div>
                   <p className="text-xs text-on-surface-variant font-medium">Nombres y Apellidos</p>
-                  <p className="font-semibold text-body-md text-on-surface">{fullName}</p>
+                  <p className="font-semibold text-body-md text-on-surface capitalize">{fullName}</p>
                 </div>
                 <div>
                   <p className="text-xs text-on-surface-variant font-medium">Fecha de Nacimiento</p>
                   <p className="font-semibold text-body-md text-on-surface">
                     {habitante.fechaNacimiento
-                      ? `${new Date(habitante.fechaNacimiento).toLocaleDateString('es-VE')} (${calculateAge(habitante.fechaNacimiento)} años)`
+                      ? `${formatBirthDate(habitante.fechaNacimiento)} (${calculateAge(habitante.fechaNacimiento)} años)`
                       : '—'}
                   </p>
                 </div>
@@ -211,7 +202,7 @@ export default function HabitanteDetailPage() {
               <div className="space-y-md">
                 <div>
                   <p className="text-xs text-on-surface-variant font-medium">Registrado Por</p>
-                  <p className="font-semibold text-body-md text-on-surface">
+                  <p className="font-semibold text-body-md text-on-surface capitalize">
                     {habitante.registradoPor
                       ? `${habitante.registradoPor.nombre || ''} ${habitante.registradoPor.apellido || ''}`.trim() || '—'
                       : '—'}

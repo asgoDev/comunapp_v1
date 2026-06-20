@@ -44,7 +44,7 @@ export default function TopBar({ onMenuToggle }) {
           className="flex items-center gap-sm"
         >
           <div className="text-right hidden sm:block">
-            <p className="text-label-lg text-primary font-bold leading-tight">
+            <p className="text-label-lg text-primary font-bold leading-tight capitalize">
               {fullName}
             </p>
             <p className="text-[10px] text-on-surface-variant font-medium uppercase">

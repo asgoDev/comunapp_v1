@@ -18,6 +18,7 @@ const habitanteSchema = new mongoose.Schema(
     nombres: {
       type: String,
       required: [true, "Los nombres son requeridos"],
+      lowercase: true,
       trim: true,
       maxlength: [100, "Los nombres no pueden superar 100 caracteres"],
     },
@@ -25,6 +26,7 @@ const habitanteSchema = new mongoose.Schema(
       type: String,
       required: [true, "Los apellidos son requeridos"],
       trim: true,
+      lowercase: true,
       maxlength: [100, "Los apellidos no pueden superar 100 caracteres"],
     },
     cedula: {
