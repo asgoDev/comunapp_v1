@@ -56,11 +56,8 @@ export default function LoginPage() {
           </div>
 
           <div className="">
-            {/* <h1 className="text-display-lg font-display-lg text-center mb-4">
-              ComunApp
-            </h1> */}
             <Logo />
-            <p className="text-body-lg text-center text-white/80 max-w-md leading-relaxed">
+            <p className="mt-2 text-body-lg text-center text-white/80 max-w-md leading-relaxed">
               La solución integral para la gestión comunitaria
             </p>
           </div>
@@ -95,7 +92,6 @@ export default function LoginPage() {
             <div className="w-80 h-30 px-4 py-2 rounded-xl flex items-center justify-center bg-primary text-primary">
               <img src={logo} alt="Logo MPP comunas" className='w-full h-full object-contain' />
             </div>
-            {/* <h1 className="text-4xl font-headline-md text-primary font-black ">ComunApp</h1> */}
             <Logo inverted={true} />
 
           </div>

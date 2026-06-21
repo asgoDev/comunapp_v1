@@ -3,7 +3,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useUiStore } from '../../stores/uiStore';
 import Icon from '../ui/Icon';
 import Avatar from '../ui/Avatar';
-
+import { Logo } from '../ui/Logo';
 export default function TopBar({ onMenuToggle }) {
   const user = useAuthStore((s) => s.user);
 
@@ -28,14 +28,11 @@ export default function TopBar({ onMenuToggle }) {
       <div className="flex items-center md:gap-lg">
         <button
           onClick={onMenuToggle}
-          className="p-sm text-on-surface-variant hover:text-primary transition-colors md:hidden flex items-center"
+          className="p-sm pl-0 text-on-surface-variant hover:text-primary transition-colors md:hidden flex items-center"
         >
           <Icon name="menu" />
         </button>
-
-        <h1 className="text-headline-sm font-headline-sm text-primary font-black">
-          ComunApp
-        </h1>
+        <Logo inverted={true} size="text-xl md:text-2xl" />
       </div>
 
       <div className="relative">
