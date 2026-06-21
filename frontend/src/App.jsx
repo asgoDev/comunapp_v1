@@ -18,6 +18,7 @@ import CasaDetailPage from './pages/Habitantes/CasaDetailPage';
 import HabitanteFormPage from './pages/Habitantes/HabitanteFormPage';
 import HabitanteDetailPage from './pages/Habitantes/HabitanteDetailPage';
 import HabitantesBulkPage from './pages/Habitantes/HabitantesBulkPage';
+import ProfilePage from './pages/Profile/ProfilePage';
 
 
 function App() {
@@ -103,6 +104,7 @@ function App() {
           <Route path="habitantes/:id/editar" element={<HabitanteFormPage />} />
 
           <Route path="auditoria" element={<AuditoriaPage />} />
+          <Route path="perfil" element={<ProfilePage />} />
         </Route>
       </Route>
 

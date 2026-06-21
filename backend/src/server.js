@@ -18,6 +18,7 @@ import comunidadRoutes from './modules/comunidades/comunidad.routes.js';
 import habitanteRoutes from './modules/habitantes/habitante.routes.js';
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import auditoriaRoutes from './modules/auditoria/auditoria.routes.js';
+import profileRoutes from './modules/profile/profile.routes.js';
 
 // ── Configuración ──
 const app = express();
@@ -67,6 +68,7 @@ app.use('/api/comunidades', comunidadRoutes);
 app.use('/api/habitantes', habitanteRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/auditoria', auditoriaRoutes);
+app.use('/api/profile', profileRoutes);
 
 // ── Ruta no encontrada ──
 app.use((_req, res) => {
