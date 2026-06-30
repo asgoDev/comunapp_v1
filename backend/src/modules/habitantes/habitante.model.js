@@ -1,5 +1,11 @@
 import mongoose from "mongoose";
 
+/**
+ * Teléfono venezolano: prefijos fijos (0212, 0261…) o celulares (04XX-XXXXXXX).
+ * Formato esperado: 04XX-XXXXXXX  |  02XX-XXXXXXX
+ */
+const TELEFONO_VE_REGEX = /^(0(4(12|14|16|22|24|26)|2\d{2}))-\d{7}$/;
+
 const habitanteSchema = new mongoose.Schema(
   {
     // ── Vivienda ───────────────────────────────────────────────────────────
@@ -50,6 +56,24 @@ const habitanteSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: null,
+    },
+
+    // ── Contacto ──────────────────────────────────────────────────────────
+    telefono: {
+      type: String,
+      trim: true,
+      default: null,
+      match: [
+        TELEFONO_VE_REGEX,
+        "Formato de teléfono inválido. Use 04XX-XXXXXXX o 02XX-XXXXXXX",
+      ],
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: null,
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Correo electrónico inválido"],
     },
 
     // ── Relaciones ─────────────────────────────────────────────────────────

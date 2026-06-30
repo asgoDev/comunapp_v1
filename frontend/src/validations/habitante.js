@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const cedulaRegex = /^[VE]-\d{6,9}$/i;
+const telefonoRegex = /^(0(4(12|14|16|24|26)|2\d{2}))-\d{7}$/;
 
 export const createHabitanteSchema = z.object({
   numeroCasa: z
@@ -43,6 +44,22 @@ export const createHabitanteSchema = z.object({
   discapacitado: z
     .string()
     .trim()
+    .optional()
+    .or(z.literal(''))
+    .transform((val) => (val === '' ? undefined : val)),
+
+  telefono: z
+    .string()
+    .trim()
+    .regex(telefonoRegex, 'Formato de teléfono inválido. Use 04XX-XXXXXXX o 02XX-XXXXXXX')
+    .optional()
+    .or(z.literal(''))
+    .transform((val) => (val === '' ? undefined : val)),
+
+  email: z
+    .string()
+    .trim()
+    .email('Correo electrónico inválido')
     .optional()
     .or(z.literal(''))
     .transform((val) => (val === '' ? undefined : val)),

@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 // Constantes
 // ──────────────────────────────────────────────────────────────────────────────
 const CAMPOS_REQUERIDOS = ['numeroCasa', 'nombres', 'apellidos', 'comunidad', 'calle'];
-const CAMPOS_TABLA_PREVIEW = ['#', 'nombres', 'apellidos', 'cedula', 'fechaNacimiento', 'numeroCasa', 'calle', 'jefeFamilia'];
+const CAMPOS_TABLA_PREVIEW = ['#', 'nombres', 'apellidos', 'cedula', 'fechaNacimiento', 'numeroCasa', 'calle', 'telefono', 'email', 'jefeFamilia'];
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -67,6 +67,8 @@ function TablaPreview({ habitantes }) {
               <td className="px-4 py-2.5 text-on-surface-variant">{h.fechaNacimiento || '—'}</td>
               <td className="px-4 py-2.5 text-on-surface">{h.numeroCasa}</td>
               <td className="px-4 py-2.5 text-on-surface">{h.calle}</td>
+              <td className="px-4 py-2.5 text-on-surface-variant text-xs">{h.telefono || '—'}</td>
+              <td className="px-4 py-2.5 text-on-surface-variant text-xs">{h.email || '—'}</td>
               <td className="px-4 py-2.5">
                 {h.jefeFamilia
                   ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20"><Icon name="star" size="12px" />Sí</span>
@@ -277,6 +279,8 @@ export default function HabitantesBulkPage() {
     "fechaNacimiento": "1990-05-15",   // opcional, formato YYYY-MM-DD
     "jefeFamilia":     true,
     "discapacitado":   null,           // opcional
+    "telefono":        "0412-1234567", // opcional, formato 04XX-XXXXXXX
+    "email":           "juan@correo.com", // opcional
     "calle":           "Principal",
     "comunidad":       "6650abc123def456789012ab"  // ObjectId de la comunidad
   }

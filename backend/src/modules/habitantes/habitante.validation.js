@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const OBJECT_ID_REGEX = /^[a-f\d]{24}$/i;
 const CEDULA_REGEX = /^[VE]-\d{6,9}$/i;
+const TELEFONO_VE_REGEX = /^(0(4(12|14|16|22|24|26)|2\d{2}))-\d{7}$/;
 
 // Schema base de un habitante (para reutilizar en bulk)
 const habitanteItemSchema = z.object({
@@ -39,6 +40,20 @@ const habitanteItemSchema = z.object({
   jefeFamilia: z.boolean().default(false),
 
   discapacitado: z.string().trim().nullable().optional(),
+
+  telefono: z
+    .string()
+    .trim()
+    .regex(TELEFONO_VE_REGEX, "Formato de teléfono inválido. Use 04XX-XXXXXXX o 02XX-XXXXXXX")
+    .nullable()
+    .optional(),
+
+  email: z
+    .string()
+    .trim()
+    .email("Correo electrónico inválido")
+    .nullable()
+    .optional(),
 
   // En bulk, comunidad y calle son OBLIGATORIOS (siempre viene del admin)
   comunidad: z
@@ -100,6 +115,20 @@ export const createHabitanteSchema = z.object({
     .nullable()
     .optional(),
 
+  telefono: z
+    .string()
+    .trim()
+    .regex(TELEFONO_VE_REGEX, "Formato de teléfono inválido. Use 04XX-XXXXXXX o 02XX-XXXXXXX")
+    .nullable()
+    .optional(),
+
+  email: z
+    .string()
+    .trim()
+    .email("Correo electrónico inválido")
+    .nullable()
+    .optional(),
+
   comunidad: z
     .string()
     .regex(OBJECT_ID_REGEX, "ID de comunidad inválido")
@@ -130,6 +159,8 @@ export const updateHabitanteSchema = z
     fechaNacimiento: z.string().date("Formato de fecha inválido. Use YYYY-MM-DD").optional(),
     jefeFamilia: z.boolean().optional(),
     discapacitado: z.string().trim().nullable().optional(),
+    telefono: z.string().trim().regex(TELEFONO_VE_REGEX, "Formato de teléfono inválido. Use 04XX-XXXXXXX o 02XX-XXXXXXX").nullable().optional(),
+    email: z.string().trim().email("Correo electrónico inválido").nullable().optional(),
     comunidad: z.string().regex(OBJECT_ID_REGEX, "ID de comunidad inválido").optional(),
     calle: z.string().trim().min(1).optional(),
   })

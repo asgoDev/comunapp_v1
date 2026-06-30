@@ -58,6 +58,8 @@ export default function HabitanteFormPage() {
       numeroCasa: queryCasa || '',
       jefeFamilia: false,
       discapacitado: '',
+      telefono: '',
+      email: '',
       comunidad: '',
       calle: queryCalle || '',
     },
@@ -93,6 +95,8 @@ export default function HabitanteFormPage() {
         numeroCasa: habitante.numeroCasa || '',
         jefeFamilia: habitante.jefeFamilia || false,
         discapacitado: habitante.discapacitado || '',
+        telefono: habitante.telefono || '',
+        email: habitante.email || '',
         comunidad: habitante.comunidad?._id || habitante.comunidad || '',
         calle: habitante.calle || '',
       });
@@ -131,6 +135,8 @@ export default function HabitanteFormPage() {
       // Limpiar campos vacíos
       if (!payload.cedula) delete payload.cedula;
       if (!payload.discapacitado) delete payload.discapacitado;
+      if (!payload.telefono) delete payload.telefono;
+      if (!payload.email) delete payload.email;
 
       if (isEditMode) {
         // En edición, no permitimos cambiar casa, calle ni comunidad
@@ -457,6 +463,44 @@ export default function HabitanteFormPage() {
                 {...register('discapacitado')}
               />
             </div>
+          </div>
+
+          {/* ── Sección: Contacto ──────────────────────────────────────── */}
+          <p className="text-label-lg text-on-surface-variant font-semibold uppercase tracking-wider pt-sm pb-xs border-b border-outline-variant/20">
+            Información de Contacto
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+
+            {/* Teléfono */}
+            <Input
+              label="Teléfono"
+              type="tel"
+              icon="phone"
+              placeholder="Ej. 0412-1234567"
+              error={errors.telefono?.message}
+              {...register('telefono', {
+                onChange: (e) => {
+                  let val = e.target.value.replace(/\D/g, '');
+                  if (val.length > 11) val = val.slice(0, 11);
+                  if (val.length > 4) {
+                    val = `${val.slice(0, 4)}-${val.slice(4)}`;
+                  }
+                  e.target.value = val;
+                },
+              })}
+            />
+
+            {/* Correo Electrónico */}
+            <Input
+              label="Correo Electrónico"
+              type="email"
+              icon="mail"
+              placeholder="Ej. ejemplo@correo.com"
+              error={errors.email?.message}
+              {...register('email')}
+            />
+
           </div>
 
           <div className="h-px bg-outline-variant/20 my-lg" />
