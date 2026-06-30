@@ -41,7 +41,6 @@ router.post(
 router.post(
   "/bulk",
   authorize("admin"),
-  validate(bulkCreateHabitantesSchema),
   habitanteController.bulkCreateHabitantes,
 );
 

@@ -372,10 +372,21 @@ class HabitanteService {
       );
     }
 
+    if (!Array.isArray(habitantesData)) {
+      throw new AppError(
+        "El cuerpo de la petición debe contener un array de habitantes.",
+        400,
+        "VALIDATION_ERROR",
+      );
+    }
+
+    // Importar dinámicamente o usar el import del archivo
+    const { habitanteItemSchema } = await import("./habitante.validation.js");
+
     // Detectar cédulas duplicadas dentro del mismo lote
     const cedulasEnLote = new Map(); // cedula → primer índice donde aparece
     habitantesData.forEach((h, i) => {
-      if (h.cedula) {
+      if (h && h.cedula) {
         const key = `${h.cedula}__${h.comunidad}`;
         if (cedulasEnLote.has(key)) {
           // marcar el duplicado pero seguimos — se reportará como error al procesar
@@ -389,8 +400,21 @@ class HabitanteService {
     let creadosExitosamente = 0;
 
     for (let i = 0; i < habitantesData.length; i++) {
-      const data = habitantesData[i];
+      const rawData = habitantesData[i];
       try {
+        // 1. Validar esquema Zod para este habitante individualmente
+        const result = habitanteItemSchema.safeParse(rawData);
+        if (!result.success) {
+          // Tomar el primer mensaje de error o mapearlos todos
+          const errorMsg = result.error.errors
+            .map((e) => `[${e.path.join(".")}] ${e.message}`)
+            .join(", ");
+          throw new Error(errorMsg);
+        }
+
+        // Datos saneados y preprocesados por Zod (emptyToNull, trim, etc.)
+        const data = result.data;
+
         // Verificar si esta cédula ya fue usada en una fila anterior del mismo lote
         if (data.cedula) {
           const key = `${data.cedula}__${data.comunidad}`;
@@ -414,11 +438,11 @@ class HabitanteService {
         errores.push({
           fila: i + 1,
           habitante: {
-            nombres: data.nombres,
-            apellidos: data.apellidos,
-            cedula: data.cedula ?? null,
-            numeroCasa: data.numeroCasa,
-            calle: data.calle,
+            nombres: rawData?.nombres || "Desconocido",
+            apellidos: rawData?.apellidos || "Desconocido",
+            cedula: rawData?.cedula ?? null,
+            numeroCasa: rawData?.numeroCasa || "N/A",
+            calle: rawData?.calle || "N/A",
           },
           error: err.message || "Error desconocido",
         });
