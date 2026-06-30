@@ -8,7 +8,7 @@ const TELEFONO_VE_REGEX = /^(0(4(12|14|16|22|24|26)|2\d{2}))-\d{7}$/;
 const emptyToNull = (val) => (val === "" ? null : val);
 
 // Schema base de un habitante (para reutilizar en bulk)
-const habitanteItemSchema = z.object({
+export const habitanteItemSchema = z.object({
   numeroCasa: z
     .string({ required_error: "El número de casa es requerido" })
     .trim()
