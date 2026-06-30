@@ -4,6 +4,9 @@ const OBJECT_ID_REGEX = /^[a-f\d]{24}$/i;
 const CEDULA_REGEX = /^[VE]-\d{6,9}$/i;
 const TELEFONO_VE_REGEX = /^(0(4(12|14|16|22|24|26)|2\d{2}))-\d{7}$/;
 
+// Preprocesador para convertir string vacío a null o undefined para campos opcionales/nullables
+const emptyToNull = (val) => (val === "" ? null : val);
+
 // Schema base de un habitante (para reutilizar en bulk)
 const habitanteItemSchema = z.object({
   numeroCasa: z
@@ -24,36 +27,44 @@ const habitanteItemSchema = z.object({
     .max(100, "Los apellidos no pueden superar 100 caracteres"),
 
   cedula: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .regex(CEDULA_REGEX, "Formato de cédula inválido. Use V-12345678 o E-12345678")
-    .nullable()
-    .optional(),
+    .preprocess(emptyToNull, z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(CEDULA_REGEX, "Formato de cédula inválido. Use V-12345678 o E-12345678")
+      .nullable()
+      .optional()
+    ),
 
   fechaNacimiento: z
-    .string()
-    .date("Formato de fecha inválido. Use YYYY-MM-DD")
-    .nullable()
-    .optional(),
+    .preprocess(emptyToNull, z
+      .string()
+      .date("Formato de fecha inválido. Use YYYY-MM-DD")
+      .nullable()
+      .optional()
+    ),
 
   jefeFamilia: z.boolean().default(false),
 
-  discapacitado: z.string().trim().nullable().optional(),
+  discapacitado: z.preprocess(emptyToNull, z.string().trim().nullable().optional()),
 
   telefono: z
-    .string()
-    .trim()
-    .regex(TELEFONO_VE_REGEX, "Formato de teléfono inválido. Use 04XX-XXXXXXX o 02XX-XXXXXXX")
-    .nullable()
-    .optional(),
+    .preprocess(emptyToNull, z
+      .string()
+      .trim()
+      .regex(TELEFONO_VE_REGEX, "Formato de teléfono inválido. Use 04XX-XXXXXXX o 02XX-XXXXXXX")
+      .nullable()
+      .optional()
+    ),
 
   email: z
-    .string()
-    .trim()
-    .email("Correo electrónico inválido")
-    .nullable()
-    .optional(),
+    .preprocess(emptyToNull, z
+      .string()
+      .trim()
+      .email("Correo electrónico inválido")
+      .nullable()
+      .optional()
+    ),
 
   // En bulk, comunidad y calle son OBLIGATORIOS (siempre viene del admin)
   comunidad: z
@@ -93,41 +104,51 @@ export const createHabitanteSchema = z.object({
     .max(100, "Los apellidos no pueden superar 100 caracteres"),
 
   cedula: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .regex(CEDULA_REGEX, "Formato de cédula inválido. Use V-12345678 o E-12345678")
-    .nullable()
-    .optional(),
+    .preprocess(emptyToNull, z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(CEDULA_REGEX, "Formato de cédula inválido. Use V-12345678 o E-12345678")
+      .nullable()
+      .optional()
+    ),
 
   // Sin restricción de mayoría de edad
   fechaNacimiento: z
-    .string()
-    .date("Formato de fecha inválido. Use YYYY-MM-DD")
-    .nullable()
-    .optional(),
+    .preprocess(emptyToNull, z
+      .string()
+      .date("Formato de fecha inválido. Use YYYY-MM-DD")
+      .nullable()
+      .optional()
+    ),
 
   jefeFamilia: z.boolean().default(false),
 
   discapacitado: z
-    .string()
-    .trim()
-    .nullable()
-    .optional(),
+    .preprocess(emptyToNull, z
+      .string()
+      .trim()
+      .nullable()
+      .optional()
+    ),
 
   telefono: z
-    .string()
-    .trim()
-    .regex(TELEFONO_VE_REGEX, "Formato de teléfono inválido. Use 04XX-XXXXXXX o 02XX-XXXXXXX")
-    .nullable()
-    .optional(),
+    .preprocess(emptyToNull, z
+      .string()
+      .trim()
+      .regex(TELEFONO_VE_REGEX, "Formato de teléfono inválido. Use 04XX-XXXXXXX o 02XX-XXXXXXX")
+      .nullable()
+      .optional()
+    ),
 
   email: z
-    .string()
-    .trim()
-    .email("Correo electrónico inválido")
-    .nullable()
-    .optional(),
+    .preprocess(emptyToNull, z
+      .string()
+      .trim()
+      .email("Correo electrónico inválido")
+      .nullable()
+      .optional()
+    ),
 
   comunidad: z
     .string()
@@ -150,17 +171,39 @@ export const updateHabitanteSchema = z
     nombres: z.string().trim().min(1).max(100).optional(),
     apellidos: z.string().trim().min(1).max(100).optional(),
     cedula: z
-      .string()
-      .trim()
-      .toUpperCase()
-      .regex(CEDULA_REGEX, "Formato de cédula inválido. Use V-12345678 o E-12345678")
-      .nullable()
-      .optional(),
-    fechaNacimiento: z.string().date("Formato de fecha inválido. Use YYYY-MM-DD").optional(),
+      .preprocess(emptyToNull, z
+        .string()
+        .trim()
+        .toUpperCase()
+        .regex(CEDULA_REGEX, "Formato de cédula inválido. Use V-12345678 o E-12345678")
+        .nullable()
+        .optional()
+      ),
+    fechaNacimiento: z
+      .preprocess(emptyToNull, z
+        .string()
+        .date("Formato de fecha inválido. Use YYYY-MM-DD")
+        .nullable()
+        .optional()
+      ),
     jefeFamilia: z.boolean().optional(),
-    discapacitado: z.string().trim().nullable().optional(),
-    telefono: z.string().trim().regex(TELEFONO_VE_REGEX, "Formato de teléfono inválido. Use 04XX-XXXXXXX o 02XX-XXXXXXX").nullable().optional(),
-    email: z.string().trim().email("Correo electrónico inválido").nullable().optional(),
+    discapacitado: z.preprocess(emptyToNull, z.string().trim().nullable().optional()),
+    telefono: z
+      .preprocess(emptyToNull, z
+        .string()
+        .trim()
+        .regex(TELEFONO_VE_REGEX, "Formato de teléfono inválido. Use 04XX-XXXXXXX o 02XX-XXXXXXX")
+        .nullable()
+        .optional()
+      ),
+    email: z
+      .preprocess(emptyToNull, z
+        .string()
+        .trim()
+        .email("Correo electrónico inválido")
+        .nullable()
+        .optional()
+      ),
     comunidad: z.string().regex(OBJECT_ID_REGEX, "ID de comunidad inválido").optional(),
     calle: z.string().trim().min(1).optional(),
   })
