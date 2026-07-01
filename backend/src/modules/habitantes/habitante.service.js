@@ -189,7 +189,7 @@ class HabitanteService {
    * @param {{ page?, limit?, search?, calle? }} query
    * @param {string} authenticatedUserId
    */
-  async getAll({ page = 1, limit = 20, search, calle } = {}, authenticatedUserId) {
+  async getAll({ page = 1, limit = 20, search, calle, comunidadId } = {}, authenticatedUserId) {
     const authUser = await this._getAuthenticatedUser(authenticatedUserId);
 
     const filter = this._buildFilterByRole(authUser);
@@ -202,6 +202,13 @@ class HabitanteService {
         { apellidos: regex },
         { cedula: regex },
       ];
+    }
+
+    // Filtro de comunidad para administrador
+    if (comunidadId && comunidadId.trim()) {
+      if (authUser.role === "admin") {
+        filter.comunidad = comunidadId.trim();
+      }
     }
 
     // Filtro de calle para admin y JEFE_COMUNIDAD
@@ -217,8 +224,9 @@ class HabitanteService {
       Habitante.find(filter)
         .skip(skip)
         .limit(Number(limit))
-        .sort({ createdAt: -1 })
-        .populate("comunidad", "nombre")
+        .collation({ locale: "es", numericOrdering: true })
+        .sort({ calle: 1, numeroCasa: 1 })
+        .populate("comunidad", "nombre estado municipio parroquia ciudadPueblo")
         .populate("registradoPor", "nombre apellido")
         .lean(),
       Habitante.countDocuments(filter),
