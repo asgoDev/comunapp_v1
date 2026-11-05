@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-11-04 — R-01: scoping de Comunidades
+
+- **Objetivo:** impedir que `JEFE_COMUNIDAD` liste, lea o consulte conteos de comunidades ajenas.
+- **Archivos:** `comunidad.service.js`, `comunidad.controller.js`, `backend/test/comunidad.service.test.js`, `backend/package.json`.
+- **Cambios:**
+  - El servicio relee `role`, `comunidad` y `estado` desde la BD.
+  - `getAll` aplica el mismo filtro a `find` y `countDocuments`.
+  - `getById` y `getSummary` responden `403 FORBIDDEN` ante acceso cruzado; el resumen valida propiedad antes de contar.
+  - Jefe sin comunidad → `403`; usuario inactivo → `401 USER_NOT_FOUND`.
+- **Verificación:** `node --check` en servicio y controlador; `pnpm test` → 10/10 pruebas OK.
+- **Riesgos:** R-01 resuelto. R-02 y R-03 siguen abiertos.
+
+---
+
 ## 2026-11-04 — Línea base documental (sin cambios de código)
 
 - **Objetivo:** documentar el estado real del backend y establecer la gobernanza del proyecto.

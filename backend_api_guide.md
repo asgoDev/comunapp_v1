@@ -49,7 +49,7 @@ El login también establece cookies `httpOnly`:
 
 El scoping se aplica en el **servidor**. `comunidad`, `calle` y `registradoPor` no se confían del body para roles no admin.
 
-> **Riesgo conocido R-01:** `GET /comunidades`, `GET /comunidades/:id` y `GET /comunidades/:id/resumen` no filtran por la comunidad del `JEFE_COMUNIDAD`. Ver [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
+`GET /comunidades`, `GET /comunidades/:id` y `GET /comunidades/:id/resumen` aplican scoping en el servidor: `JEFE_COMUNIDAD` solo accede a su propia comunidad; un acceso cruzado responde `403 FORBIDDEN`. R-01 resuelto el 2026-11-04.
 
 ---
 
@@ -344,14 +344,14 @@ Requieren autenticación. Lectura: `admin` y `JEFE_COMUNIDAD`. Escritura: solo `
 ```
 
 > `estado` es la entidad geográfica; el estado lógico es `activo`.
+>
+> **Scoping:** `admin` ve todas las activas; `JEFE_COMUNIDAD` solo recibe su comunidad y los totales se calculan con el mismo filtro.
 
 ### 5.2 `GET /comunidades/:id`
 
 **Respuesta 200:** documento de comunidad.
 
-**Errores:** `400 INVALID_COMUNIDAD_ID`; `404 COMUNIDAD_NOT_FOUND` si no existe o está inactiva.
-
-> **Riesgo R-01:** un `JEFE_COMUNIDAD` puede consultar comunidades distintas a la suya.
+**Errores:** `400 INVALID_COMUNIDAD_ID`; `404 COMUNIDAD_NOT_FOUND` si no existe o está inactiva; `403 FORBIDDEN` si un `JEFE_COMUNIDAD` intenta leer una comunidad ajena.
 
 ### 5.3 `GET /comunidades/:id/resumen`
 
@@ -366,6 +366,8 @@ Requieren autenticación. Lectura: `admin` y `JEFE_COMUNIDAD`. Escritura: solo `
   "jefesFamilia": 45
 }
 ```
+
+**Errores:** `400 INVALID_COMUNIDAD_ID`; `404 COMUNIDAD_NOT_FOUND`; `403 FORBIDDEN` si la comunidad no pertenece al `JEFE_COMUNIDAD`. La propiedad se valida antes de ejecutar los conteos.
 
 ### 5.4 `POST /comunidades`
 
@@ -752,7 +754,7 @@ Campos editables: `nombre`, `apellido`, `email`, `telefono`, `direccion`, `fecha
 | Módulo | `admin` | `JEFE_COMUNIDAD` | `LIDER_CALLE` |
 |---|---|---|---|
 | Usuarios | CRUD total | CRUD de `LIDER_CALLE` de su comunidad | — |
-| Comunidades | CRUD total | Lectura (sin scoping actual; R-01) | — |
+| Comunidades | CRUD total | Lectura de su comunidad | — |
 | Habitantes | CRUD + bulk | Lectura de su comunidad | CRUD de su calle |
 | Dashboard | Global | Su comunidad | Su calle |
 | Auditoría | Lectura | — | — |

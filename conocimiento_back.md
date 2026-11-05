@@ -140,8 +140,8 @@ Se lanzan con `new AppError(message, statusCode, code)` y los captura [`errorHan
 |---|---|---|---|
 | `GET /users` | Todos | Solo `LIDER_CALLE` de su comunidad | — |
 | `POST/PUT/DELETE /users` | Todos | Solo `LIDER_CALLE` de su comunidad; fuerza rol y comunidad | — |
-| `GET /comunidades` | Todas | Todas *(gap de scoping)* | — |
-| `GET /comunidades/:id` y `/resumen` | Todas | Cualquiera *(gap de scoping)* | — |
+| `GET /comunidades` | Todas | Solo su comunidad | — |
+| `GET /comunidades/:id` y `/resumen` | Todas | Solo su comunidad; acceso cruzado → `403` | — |
 | `POST/PUT/DELETE /comunidades` | Sí | No | No |
 | `GET /habitantes` | Todos | Su comunidad | Su comunidad + su calle |
 | `POST /habitantes` | Sí (requiere `comunidad` y `calle` en body) | No | Solo su calle (derivada) |
@@ -166,9 +166,16 @@ Se lanzan con `new AppError(message, statusCode, code)` y los captura [`errorHan
   - Verifica duplicado por `{ cedula, comunidad }`.
   - Responde `409 HABITANTE_CEDULA_DUPLICATE`.
 
-### 5.4 Gap conocido de comunidades
+### 5.4 Scoping de comunidades
 
-`ComunidadService.getAll`, `getById` y `getSummary` no reciben el usuario autenticado ni filtran por su comunidad. Las rutas permiten `JEFE_COMUNIDAD`. Esto permite lectura cruzada de comunidades ajenas. **Debe corregirse en el próximo sprint de comunidades**, añadiendo el scoping en el servicio y pruebas de acceso cruzado.
+`ComunidadService.getAll`, `getById` y `getSummary` reciben el ID del usuario autenticado, releen `role`, `comunidad` y `estado` desde la BD y aplican:
+
+- `admin`: sin restricción.
+- `JEFE_COMUNIDAD`: solo su comunidad; el mismo filtro se usa en `find` y `countDocuments`.
+- Acceso cruzado: `403 FORBIDDEN`; recurso inexistente/inactivo: `404`.
+- En el resumen, la propiedad se verifica antes de ejecutar los conteos.
+
+R-01 resuelto el 2026-11-04. La decisión es fail-closed: un jefe sin comunidad recibe `403` y un usuario inactivo `401 USER_NOT_FOUND`.
 
 ### 5.5 Scope de usuarios
 
@@ -314,8 +321,7 @@ Variables de entorno usadas por el backend (solo nombres): `PORT`, `NODE_ENV`, `
 
 > Registro priorizado, impacto y plan de remediación: [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
 
-1. **Scoping de comunidades incompleto** (ver §5.4). R-01.
-2. **Rotación de refresh token incompleta** (ver §4.3). R-02.
+1. **Rotación de refresh token incompleta** (ver §4.3). R-02.
 3. **Tokens en `localStorage`** en el frontend; el backend también devuelve tokens en el body. R-03.
 4. **Regex sin escapar** en búsquedas y validación de duplicados. R-04.
 5. **Cédula de habitante sin índice único compuesto**; riesgo de duplicados concurrentes. R-05.

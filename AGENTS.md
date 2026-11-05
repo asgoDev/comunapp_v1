@@ -99,13 +99,13 @@
 | Módulo | `admin` | `JEFE_COMUNIDAD` | `LIDER_CALLE` |
 |---|---|---|---|
 | Usuarios | CRUD total | CRUD solo de `LIDER_CALLE` de su comunidad | Sin acceso |
-| Comunidades | CRUD total | Lectura de su comunidad¹ | Sin acceso |
+| Comunidades | CRUD total | Lectura de su comunidad | Sin acceso |
 | Habitantes | CRUD total + carga masiva | Lectura de su comunidad | CRUD de habitantes de su calle |
 | Dashboard | Métricas globales | Métricas de su comunidad | Métricas de su calle |
 | Auditoría | Lectura | Sin acceso | Sin acceso |
 | Perfil | Propio | Propio | Propio |
 
-¹ **Riesgo conocido:** hoy `GET /api/comunidades`, `GET /api/comunidades/:id` y `GET /api/comunidades/:id/resumen` no filtran por la comunidad del `JEFE_COMUNIDAD`. Ver `MEMORY.md`.
+`GET /api/comunidades`, `GET /api/comunidades/:id` y `GET /api/comunidades/:id/resumen` aplican scoping desde el 2026-11-04: `JEFE_COMUNIDAD` solo accede a su comunidad; el acceso cruzado responde `403 FORBIDDEN` (R-01 resuelto).
 
 ### 3.2 Scoping multi-tenant
 

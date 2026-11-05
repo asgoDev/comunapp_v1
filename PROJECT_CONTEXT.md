@@ -132,9 +132,9 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 | POST | `/users` | `admin`, `JEFE_COMUNIDAD` | Crear |
 | PUT | `/users/:id` | `admin`, `JEFE_COMUNIDAD` | Actualizar |
 | DELETE | `/users/:id` | `admin`, `JEFE_COMUNIDAD` | Desactivar (soft delete) |
-| GET | `/comunidades` | `admin`, `JEFE_COMUNIDAD` | Lista paginada |
-| GET | `/comunidades/:id` | `admin`, `JEFE_COMUNIDAD` | Detalle |
-| GET | `/comunidades/:id/resumen` | `admin`, `JEFE_COMUNIDAD` | Conteos de la comunidad |
+| GET | `/comunidades` | `admin`, `JEFE_COMUNIDAD` | Lista paginada; el jefe solo ve su comunidad |
+| GET | `/comunidades/:id` | `admin`, `JEFE_COMUNIDAD` | Detalle con scoping |
+| GET | `/comunidades/:id/resumen` | `admin`, `JEFE_COMUNIDAD` | Conteos con scoping |
 | POST | `/comunidades` | `admin` | Crear |
 | PUT | `/comunidades/:id` | `admin` | Actualizar |
 | DELETE | `/comunidades/:id` | `admin` | Desactivar (soft delete) |
@@ -216,7 +216,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 - Comandos:
   - Backend: `pnpm install`, `pnpm run seed`, `pnpm run dev`, `pnpm start`.
   - Frontend: `pnpm install`, `pnpm dev`, `pnpm build`, `pnpm preview`.
-- No hay suite de tests ni scripts `test`/lint.
+- Backend dispone de pruebas con `node:test` (`pnpm test`); frontend aún no tiene suite automatizada ni lint.
 
 ---
 
@@ -224,7 +224,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 
 - Módulos funcionales: auth, usuarios, comunidades, habitantes (incluida carga masiva y PDF), dashboard, auditoría y perfil.
 - La estética usa Tailwind con tokens CSS y tres temas.
-- Hay deudas de seguridad y documentación registradas en [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md) y resumidas en [`MEMORY.md`](./MEMORY.md). Las principales: scoping incompleto de comunidades, rotación de refresh token, tokens en `localStorage`, regex sin escapar y ausencia de tests.
+- Hay deudas de seguridad y documentación registradas en [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md) y resumidas en [`MEMORY.md`](./MEMORY.md). Las principales: rotación de refresh token, tokens en `localStorage`, regex sin escapar y cobertura de tests incompleta. R-01 (scoping de comunidades) quedó resuelto el 2026-11-04.
 - `README.md` y `backend_api_guide.md` fueron reescritos y sincronizados el 2026-11-04.
 
 ---

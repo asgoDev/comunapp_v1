@@ -8,6 +8,82 @@ class ComunidadService {
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
   /**
+   * Relee al usuario autenticado para aplicar scoping con datos frescos.
+   * El JWT solo transporta { id, role }; comunidad y estado deben venir de la BD.
+   *
+   * @param {string} userId
+   * @returns {Promise<{ _id, role, comunidad, estado }>}
+   */
+  async _getAuthenticatedUser(userId) {
+    const user = await User.findById(userId)
+      .select("role comunidad estado")
+      .lean();
+
+    if (!user || user.estado === "inactivo") {
+      throw new AppError(
+        "Usuario autenticado no encontrado o inactivo.",
+        401,
+        "USER_NOT_FOUND",
+      );
+    }
+
+    return user;
+  }
+
+  /**
+   * Construye el filtro de lectura de comunidades según el rol.
+   * Un jefe sin comunidad asignada no puede listar el catálogo global.
+   *
+   * @param {{ role: string, comunidad: object }} authUser
+   * @returns {object}
+   */
+  _buildReadFilter(authUser) {
+    if (authUser.role === "admin") {
+      return { activo: true };
+    }
+
+    if (authUser.role === "JEFE_COMUNIDAD") {
+      if (!authUser.comunidad) {
+        throw new AppError(
+          "El usuario no tiene una comunidad asignada.",
+          403,
+          "FORBIDDEN",
+        );
+      }
+
+      return { _id: authUser.comunidad, activo: true };
+    }
+
+    throw new AppError(
+      "No tiene permisos para acceder a comunidades.",
+      403,
+      "FORBIDDEN",
+    );
+  }
+
+  /**
+   * Verifica que la comunidad pertenezca al ámbito del usuario autenticado.
+   * ADMIN tiene acceso global; JEFE_COMUNIDAD solo a la suya.
+   *
+   * @param {object} comunidad Documento plano de la comunidad
+   * @param {{ role: string, comunidad: object }} authUser
+   */
+  _assertOwnership(comunidad, authUser) {
+    if (authUser.role === "admin") return;
+
+    const comunidadId = comunidad._id?.toString();
+    const userComunidadId = authUser.comunidad?.toString();
+
+    if (!userComunidadId || comunidadId !== userComunidadId) {
+      throw new AppError(
+        "No tiene permisos para acceder a esta comunidad.",
+        403,
+        "FORBIDDEN",
+      );
+    }
+  }
+
+  /**
    * Verifica si existe una comunidad activa con el mismo nombre + municipio + estado.
    * @param {string} nombre
    * @param {string} municipio
@@ -51,18 +127,24 @@ class ComunidadService {
   }
 
   /**
-   * Lista todas las comunidades activas con paginación.
+   * Lista las comunidades activas visibles para el usuario autenticado.
+   * ADMIN ve todas; JEFE_COMUNIDAD solo la suya.
+   *
+   * @param {{ page?: number, limit?: number }} options
+   * @param {string} authenticatedUserId
    */
-  async getAll({ page = 1, limit = 20 } = {}) {
+  async getAll({ page = 1, limit = 20 } = {}, authenticatedUserId) {
+    const authUser = await this._getAuthenticatedUser(authenticatedUserId);
+    const filter = this._buildReadFilter(authUser);
     const skip = (Number(page) - 1) * Number(limit);
 
     const [comunidades, total] = await Promise.all([
-      Comunidad.find({ activo: true })
+      Comunidad.find(filter)
         .skip(skip)
         .limit(Number(limit))
         .sort({ nombre: 1 })
         .lean(),
-      Comunidad.countDocuments({ activo: true }),
+      Comunidad.countDocuments(filter),
     ]);
 
     return {
@@ -77,10 +159,13 @@ class ComunidadService {
   }
 
   /**
-   * Obtiene una comunidad activa por su ID.
-   * Lanza 404 si no existe o está inactiva.
+   * Obtiene una comunidad activa dentro del ámbito del usuario autenticado.
+   * Lanza 404 si no existe o está inactiva, y 403 si pertenece a otra comunidad.
+   *
+   * @param {string} id
+   * @param {string} authenticatedUserId
    */
-  async getById(id) {
+  async getById(id, authenticatedUserId) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError(
         "ID de comunidad inválido.",
@@ -89,6 +174,7 @@ class ComunidadService {
       );
     }
 
+    const authUser = await this._getAuthenticatedUser(authenticatedUserId);
     const comunidad = await Comunidad.findOne({ _id: id, activo: true }).lean();
     if (!comunidad) {
       throw new AppError(
@@ -98,6 +184,7 @@ class ComunidadService {
       );
     }
 
+    this._assertOwnership(comunidad, authUser);
     return comunidad;
   }
 
@@ -174,10 +261,13 @@ class ComunidadService {
   // ── Estadísticas ─────────────────────────────────────────────────────────────
 
   /**
-   * Retorna un resumen de la comunidad:
+   * Retorna un resumen de la comunidad dentro del ámbito del usuario:
    * jefes de comunidad, líderes de calle, total de habitantes y jefes de familia.
+   *
+   * @param {string} id
+   * @param {string} authenticatedUserId
    */
-  async getSummary(id) {
+  async getSummary(id, authenticatedUserId) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new AppError(
         "ID de comunidad inválido.",
@@ -186,6 +276,7 @@ class ComunidadService {
       );
     }
 
+    const authUser = await this._getAuthenticatedUser(authenticatedUserId);
     const comunidad = await Comunidad.findOne({ _id: id, activo: true })
       .select("nombre")
       .lean();
@@ -197,6 +288,9 @@ class ComunidadService {
         "COMUNIDAD_NOT_FOUND",
       );
     }
+
+    // Verificar propiedad antes de calcular o exponer cualquier conteo.
+    this._assertOwnership(comunidad, authUser);
 
     const objectId = new mongoose.Types.ObjectId(id);
 

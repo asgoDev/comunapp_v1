@@ -66,13 +66,13 @@ Route -> authenticate/authorize -> validate(Zod) -> Controller -> Service (singl
 | Módulo | `admin` | `JEFE_COMUNIDAD` | `LIDER_CALLE` |
 |---|---|---|---|
 | Usuarios | CRUD total | Solo `LIDER_CALLE` de su comunidad | — |
-| Comunidades | CRUD total | Lectura de su comunidad¹ | — |
+| Comunidades | CRUD total | Lectura de su comunidad | — |
 | Habitantes | CRUD + bulk | Lectura de su comunidad | CRUD de su calle |
 | Dashboard | Global | Su comunidad | Su calle |
 | Auditoría | Lectura | — | — |
 | Perfil | Propio | Propio | Propio |
 
-¹ Gap actual: `GET /comunidades`, `/:id` y `/:id/resumen` no filtran por comunidad. Corregir en el próximo sprint de comunidades. Ver `MEMORY.md`.
+`GET /comunidades`, `/:id` y `/:id/resumen` aplican scoping desde el 2026-11-04 (R-01 resuelto). Un jefe solo accede a su comunidad y el acceso cruzado responde `403`.
 
 ---
 

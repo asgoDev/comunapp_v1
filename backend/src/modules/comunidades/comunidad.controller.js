@@ -20,7 +20,7 @@ class ComunidadController {
    */
   async getComunidades(req, res, next) {
     try {
-      const result = await comunidadService.getAll(req.query);
+      const result = await comunidadService.getAll(req.query, req.user.id);
       res.json(result);
     } catch (error) {
       next(error);
@@ -33,7 +33,7 @@ class ComunidadController {
    */
   async getComunidad(req, res, next) {
     try {
-      const comunidad = await comunidadService.getById(req.params.id);
+      const comunidad = await comunidadService.getById(req.params.id, req.user.id);
       res.json(comunidad);
     } catch (error) {
       next(error);
@@ -72,7 +72,7 @@ class ComunidadController {
    */
   async getComunidadResumen(req, res, next) {
     try {
-      const resumen = await comunidadService.getSummary(req.params.id);
+      const resumen = await comunidadService.getSummary(req.params.id, req.user.id);
       res.json(resumen);
     } catch (error) {
       next(error);

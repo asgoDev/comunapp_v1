@@ -23,7 +23,7 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 
 - **Auth:** login por email/cédula, refresh, logout con blacklist, `/me`, cookies `httpOnly` + tokens en body, rate limiting.
 - **Usuarios:** CRUD con scoping para `JEFE_COMUNIDAD` (solo `LIDER_CALLE` de su comunidad), soft delete, cédula inmutable.
-- **Comunidades:** CRUD admin, soft delete, resumen, validación de duplicados; lectura para `JEFE_COMUNIDAD` (sin scoping en API: ver riesgos).
+- **Comunidades:** CRUD admin, soft delete, resumen, validación de duplicados; lectura con scoping para `JEFE_COMUNIDAD` (R-01 resuelto).
 - **Habitantes:** CRUD con scoping por comunidad/calle, unicidad de cédula por comunidad, carga masiva admin (máx. 500; 207 parcial), vistas casas/listado y export PDF.
 - **Dashboard:** métricas por rol. **Auditoría:** logs de escritura (solo admin). **Perfil:** datos propios y cambio de contraseña.
 - **Frontend:** temas por variables CSS (`default`, `emerald`, `matrix`), layout responsive, TanStack Query, RHF+Zod, toasts y export PDF.
@@ -42,7 +42,7 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 
 > Registro completo con impacto, remediación y plan por fases: [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
 
-- **R-01 (P0, seguridad):** scoping de Comunidades incompleto; un `JEFE_COMUNIDAD` puede leer comunidades ajenas.
+- **R-01 (P0, seguridad):** resuelto el 2026-11-04. `JEFE_COMUNIDAD` solo lista/lee su comunidad; acceso cruzado → `403`; resumen valida antes de contar.
 - **R-02 (P0, seguridad):** el refresh token no se invalida al rotarlo.
 - **R-03 (P0, seguridad):** tokens persistidos en `localStorage` y refresh devuelto en el body.
 - **R-04 (P1, seguridad):** `$regex` construido con entrada del usuario en comunidades/habitantes.
@@ -57,9 +57,9 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 
 ## Próximos pasos recomendados
 
-1. Remediar P0: **R-01** (comunidades), **R-02** (auth) y **R-03** (auth frontend), en sprints separados.
+1. Remediar P0 pendientes: **R-02** (auth backend) y **R-03** (auth backend/frontend), en sprints separados.
 2. Remediar P1: **R-04**, **R-05**, **R-06**, **R-07** y **R-08**.
-3. Añadir Vitest + scripts de test/lint y paginación server-side (**R-09**, **R-12**).
+3. Ampliar la suite de pruebas (Vitest/RTL para frontend, lint) y añadir paginación server-side (**R-09**, **R-12**).
 4. Resolver P2/P3 restantes según [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
 
 ## Referencias
