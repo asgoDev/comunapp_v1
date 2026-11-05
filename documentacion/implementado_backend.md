@@ -15,7 +15,7 @@
   - Se elimina la cookie legible `sessionExpiry`.
   - Se mantiene `SameSite=None; Secure` en producción por despliegue cross-site y fallback de iOS.
 - **Verificación:** `node --check`; `pnpm test` → 21/21 pruebas OK (5 nuevas de contrato).
-- **Riesgo / bloqueo:** no desplegar este backend con el frontend anterior. R-03 sigue abierto hasta completar el frontend y probar iOS.
+- **Riesgo / bloqueo:** no desplegar este backend con el frontend anterior. El frontend se completó el mismo día; el despliegue debe seguir siendo coordinado.
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **Backlog de remediación.** Cada riesgo detectado en el escaneo del 2026-11-04 tiene un ID estable, prioridad, ubicación, impacto y remediación propuesta. Al resolverlo, actualizar su estado y registrar la evidencia en [`documentacion/implementado_backend.md`](./implementado_backend.md) o [`documentacion/implementado_frontend.md`](./implementado_frontend.md).
 >
-> **Estado:** 2026-11-04 · R-01, R-02 y R-21 resueltos; el resto abierto.
+> **Estado:** 2026-11-04 · R-01, R-02, R-03 y R-21 resueltos; el resto abierto.
 
 ## Escala
 
@@ -21,7 +21,7 @@
 |---|---|---|---|---|---|---|
 | **R-01** | P0 | Seguridad / scoping | `GET /comunidades`, `GET /comunidades/:id` y `/:id/resumen` no filtraban por la comunidad del `JEFE_COMUNIDAD` (`comunidad.service.js`, `comunidad.controller.js`). | Un jefe podía leer comunidades y conteos ajenos (exposición cruzada). | Servicio recibe el usuario autenticado, relee la BD, filtra `find` y `countDocuments`, responde `403` en acceso cruzado y valida antes de contar. | **Resuelto** (2026-11-04; 10 pruebas en `backend/test/comunidad.service.test.js`) |
 | **R-02** | P0 | Seguridad / auth | `auth.service.refresh` emitía tokens nuevos sin invalidar el refresh presentado. | Un refresh robado seguía válido hasta 8 h; no había detección de reuso. | Hash del refresh en `TokenBlacklist` antes de emitir, índice único como consumo atómico, `jti` único por refresh y pruebas de reuso/concurrencia. | **Resuelto** (2026-11-04; 6 pruebas en `backend/test/auth.service.test.js`) |
-| **R-03** | P0 | Seguridad / frontend | `authStore` persiste `accessToken` y `refreshToken` en `localStorage`; el login también devolvía el refresh en el body. | Robo de sesión por XSS; exposición del refresh a JS. | Backend cookie-only completado; migrar a access token en memoria, borrar almacenamiento heredado y ajustar bootstrap/iOS; desplegar coordinadamente. | **En curso** (backend listo 2026-11-04; frontend pendiente) |
+| **R-03** | P0 | Seguridad / frontend | `authStore` persistía `accessToken` y `refreshToken` en `localStorage`; el login devolvía el refresh en el body. | Robo de sesión por XSS; exposición del refresh a JS. | Backend cookie-only, access token en memoria, limpieza de `auth-storage`, bootstrap con fallback iOS y pruebas de store/interceptor. | **Resuelto** (2026-11-04; 5 pruebas backend + 9 frontend) |
 | **R-04** | P1 | Seguridad / backend | `ComunidadService.existsByName` y `HabitanteService.getAll({ search })` construyen `$regex` con entrada del usuario. | ReDoS, falsos matches y comportamiento inesperado. | Escapar caracteres regex (`escapeRegex`) o usar búsqueda normalizada/`$text`; limitar longitud; tests con caracteres especiales. | Abierto |
 | **R-05** | P1 | Integridad / habitantes | La unicidad de cédula de habitante se valida solo en servicio; no hay índice único compuesto `{ comunidad, cedula }`. | Duplicados por condiciones de carrera. | Crear índice único parcial (`partialFilterExpression` para cédula string); manejar `11000`; test de concurrencia. | Abierto |
 | **R-06** | P1 | Seguridad / auth | Cookies `sameSite: 'none'` en producción y fallback de cookie para escrituras; no hay CSRF token ni validación de `Origin`. | Posible CSRF en endpoints de escritura si se autentica por cookie. | Añadir CSRF token/double-submit o validar `Origin`/`Referer`; documentar el flujo; tests. | Abierto |
@@ -49,9 +49,9 @@ Agrupar por módulo al planificar; no mezclar módulos completos en un mismo spr
 
 ### Fase 1 — Seguridad crítica (P0)
 
-1. **R-01** en `comunidades` (backend).
-2. **R-02** en `auth` (backend).
-3. **R-03** en `auth` (frontend).
+1. **R-01** en `comunidades` (backend) — resuelto.
+2. **R-02** en `auth` (backend) — resuelto.
+3. **R-03** en `auth` (backend/frontend) — resuelto; desplegar coordinadamente.
 
 ### Fase 2 — Seguridad e integridad (P1)
 

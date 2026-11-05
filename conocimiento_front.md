@@ -76,22 +76,30 @@ Componente / Page
 
 ## 3. Autenticación y sesión
 
-- `authStore` (Zustand + `persist`) guarda `user`, `isAuthenticated`, `sessionExpiry`, `accessToken`, `refreshToken`.
-- Persistencia en `localStorage` bajo la clave `auth-storage`.
-- `login` guarda tokens y fija `sessionExpiry` a 8 h.
-- `checkAuth` llama a `/auth/me`; se ejecuta al montar, cada 5 min y al recuperar foco.
-- `App.jsx` verifica la expiración local; si expiró, hace logout.
-- `api.js` inyecta `Authorization: Bearer <accessToken>` desde Zustand (con fallback a `localStorage`).
-- Ante `401`, el interceptor de respuesta:
-  - Evita reintentar en `/auth/login`, `/auth/refresh`, `/auth/logout`.
-  - Encola peticiones concurrentes mientras refresca.
-  - Llama a `/auth/refresh` con el refresh token en body y cookie.
-  - Actualiza tokens en el store y reintenta la petición original.
-  - Si falla, limpia auth y redirige a `/login`.
+- `authStore` (Zustand, **sin persist**) mantiene en memoria `user`, `isAuthenticated`, `accessToken`, `isInitializing`, `isInitialized` y `sessionNotice`.
+- El refresh token nunca llega a JavaScript: viaja solo en la cookie `HttpOnly` del backend.
+- Si queda una entrada heredada `auth-storage` en `localStorage`, se elimina al cargar el store.
+- `initializeAuth` se ejecuta una vez al arrancar y deduplica el doble montaje de React StrictMode:
+  1. Llama a `/auth/refresh` usando la cookie.
+  2. Guarda el access token solo en memoria.
+  3. Consulta `/auth/me`.
+  4. Si falla, limpia la sesión y muestra login.
+- `checkAuth` consulta `/auth/me` cada 5 minutos y al recuperar foco; no extiende la sesión artificialmente.
+- `api.js` inyecta `Authorization: Bearer <accessToken>` desde Zustand, sin fallback a `localStorage`.
+- Ante `401`, el interceptor:
+  - Evita reintentar en `/auth/login`, `/auth/refresh` y `/auth/logout`.
+  - Comparte una única promesa de refresh entre peticiones concurrentes.
+  - Llama a `/auth/refresh` sin body: el token viaja por cookie.
+  - Reintenta la petición original con el nuevo access token.
+  - Si falla, limpia auth y caché de TanStack Query y muestra un aviso genérico de sesión expirada.
+- Logout limpia estado, caché y cookies; no vuelve a persistir tokens.
 
-### Riesgo de seguridad vigente
+### Fallback iOS
 
-Persistir `accessToken` y `refreshToken` en `localStorage` los expone a XSS. Es una decisión heredada de la plantilla; **no la empeores** y evalúa migrar a cookies `httpOnly` + token de acceso en memoria. No añadas nuevos secretos a `localStorage`.
+- Si frontend y API están en sitios distintos, WebKit puede bloquear la cookie de refresh.
+- Al expirar el access token o recargar la página, el refresh falla y se solicita login nuevamente.
+- El access token se conserva solo en memoria mientras la pestaña sigue abierta.
+- **No** se detecta iOS por `userAgent` ni se reintroduce el refresh en body/localStorage. El comportamiento depende de la capacidad real de la cookie.
 
 ### `ProtectedRoute`
 
@@ -226,7 +234,7 @@ const { register, handleSubmit, reset, formState: { errors } } = useForm({
 - Evita `limit` gigantes; prefiere paginación del backend.
 - No guardes datos derivados en Zustand si TanStack Query ya los provee.
 - `ReactQueryDevtools` está habilitado en desarrollo.
-- `authStore` usa `partialize` para persistir solo lo necesario.
+- `authStore` no persiste estado: los datos de sesión viven en memoria y se restauran con la cookie de refresh.
 - Los stores `userStore`, `comunidadStore`, `habitanteStore` y `auditoriaStore` son stubs deprecados (`export {}`); eliminar cuando se confirme que no hay imports.
 
 ---
@@ -239,7 +247,7 @@ const { register, handleSubmit, reset, formState: { errors } } = useForm({
 - No almacenes PII innecesaria en `localStorage`.
 - Mantén `withCredentials: true` y la configuración de CORS del backend.
 - Si se añade un flujo de pago, archivos o datos sensibles, consultar antes de elegir almacenamiento.
-- **Riesgo vigente:** tokens en `localStorage`; ver §3.
+- **R-03 resuelto:** access token solo en memoria y refresh solo por cookie `HttpOnly`; no reintroducir persistencia de tokens.
 - **Riesgo vigente:** `window.confirm` y mensajes de error genéricos; no exponen datos, pero no sustituyen validación/errores de campo.
 
 ---
@@ -267,10 +275,11 @@ pnpm build
 pnpm preview
 ```
 
-- No hay script `test` ni ESLint/Prettier configurado.
-- Verificación mínima tras un cambio: `pnpm build` sin errores nuevos.
-- Si se toca lógica de formateo/fechas, probar manualmente o proponer Vitest.
-- Si se toca auth, probar login, refresh, expiración y logout.
+- `pnpm test` usa `node:test` + Vite SSR para probar store e interceptor sin dependencias nuevas.
+- No hay ESLint/Prettier configurado.
+- Verificación mínima tras un cambio: `pnpm test` y `pnpm build` sin errores nuevos.
+- Si se toca lógica de formateo/fechas, probar manualmente o ampliar la suite.
+- Si se toca auth, probar login, refresh, expiración, logout, concurrencia y ausencia de tokens persistidos.
 
 ---
 
@@ -278,18 +287,17 @@ pnpm preview
 
 > Registro priorizado, impacto y plan de remediación: [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
 
-1. **Tokens en `localStorage`** (riesgo XSS). R-03.
-2. **`ProtectedRoute` no valida roles**; guardas duplicadas en páginas. R-07.
-3. **`toast.error` durante el render** en varias guardas de página (efecto secundario en render). R-07.
-4. **`HabitantesPage` con `limit=9999`** y paginación local. R-09.
-5. **`formatName` rota** y sin uso. R-14.
-6. **Stores deprecados** que conviene eliminar. R-14.
-7. **Errores de servidor** no se mapean a inputs; solo toast. R-17.
-8. **`main.jsx`** usa colores hex en el Toaster en lugar de tokens (deuda menor).
-9. **`ComunidadFormPage`** usa `venezuela.json`; si se actualiza la división político-territorial, verificar el formato.
-10. **No hay tests** de componentes, hooks ni formatters. R-08.
-11. **No hay manejo centralizado de errores de red**; cada página decide el toast.
-12. **Documentación base:** `README.md` fue reescrito y sincronizado el 2026-11-04. Resuelto (R-21).
+1. **`ProtectedRoute` no valida roles**; guardas duplicadas en páginas. R-07.
+2. **`toast.error` durante el render** en varias guardas de página (efecto secundario en render). R-07.
+3. **`HabitantesPage` con `limit=9999`** y paginación local. R-09.
+4. **`formatName` rota** y sin uso. R-14.
+5. **Stores deprecados** que conviene eliminar. R-14.
+6. **Errores de servidor** no se mapean a inputs; solo toast. R-17.
+7. **`main.jsx`** usa colores hex en el Toaster en lugar de tokens (deuda menor).
+8. **`ComunidadFormPage`** usa `venezuela.json`; si se actualiza la división político-territorial, verificar el formato.
+9. **Cobertura de tests acotada** a auth; faltan componentes, hooks, formatters y lint. R-08.
+10. **No hay manejo centralizado de errores de red**; cada página decide el toast.
+11. **Documentación base:** `README.md` fue reescrito y sincronizado el 2026-11-04. Resuelto (R-21).
 
 ---
 

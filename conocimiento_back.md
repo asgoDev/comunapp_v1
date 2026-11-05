@@ -323,17 +323,16 @@ Variables de entorno usadas por el backend (solo nombres): `PORT`, `NODE_ENV`, `
 
 > Registro priorizado, impacto y plan de remediación: [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
 
-1. **Tokens en `localStorage`** en el frontend; el backend también devuelve tokens en el body. R-03.
-2. **Regex sin escapar** en búsquedas y validación de duplicados. R-04.
-3. **Cédula de habitante sin índice único compuesto**; riesgo de duplicados concurrentes. R-05.
-4. **Cobertura de tests incompleta**; existe `pnpm test` con `node:test`, pero no hay lint ni suite frontend. R-08.
-5. **`seed.js`** asigna `cargo`, campo que no existe en `User`. R-15.
-6. **`dashboard.service.js`** usa `mongoose.model('Habitante')` en vez de importar el modelo. R-13.
-7. **`ComunidadService.delete`** responde `404` si la comunidad ya está inactiva (no es idempotente con 409). No cambies el contrato sin aprobación. R-16.
-8. **Frontend pendiente de R-03:** el backend ya no devuelve ni acepta `refreshToken` por body; el frontend debe migrar a access en memoria antes de desplegar este contrato.
-9. **Saneamiento de auditoría** solo cubre el nivel superior del body; un objeto anidado con `password` no se sanea. R-18.
-10. **Los listados no imponen un límite máximo** (excepto auditoría, 100). Un `limit` alto puede degradar el rendimiento. R-12.
-11. **Documentación base:** `backend_api_guide.md` y `README.md` fueron reescritos y sincronizados el 2026-11-04. Resuelto (R-21).
+1. **Regex sin escapar** en búsquedas y validación de duplicados. R-04.
+2. **Cédula de habitante sin índice único compuesto**; riesgo de duplicados concurrentes. R-05.
+3. **Cobertura de tests incompleta**; hay pruebas acotadas de auth/scoping, pero no lint ni suite completa. R-08.
+4. **`seed.js`** asigna `cargo`, campo que no existe en `User`. R-15.
+5. **`dashboard.service.js`** usa `mongoose.model('Habitante')` en vez de importar el modelo. R-13.
+6. **`ComunidadService.delete`** responde `404` si la comunidad ya está inactiva (no es idempotente con 409). No cambies el contrato sin aprobación. R-16.
+7. **Contrato R-03:** backend cookie-only y frontend con access en memoria; no reintroducir `refreshToken` en JSON/body.
+8. **Saneamiento de auditoría** solo cubre el nivel superior del body; un objeto anidado con `password` no se sanea. R-18.
+9. **Los listados no imponen un límite máximo** (excepto auditoría, 100). Un `limit` alto puede degradar el rendimiento. R-12.
+10. **Documentación base:** `backend_api_guide.md` y `README.md` fueron reescritos y sincronizados el 2026-11-04. Resuelto (R-21).
 
 ---
 

@@ -58,13 +58,15 @@ Las mutaciones deben invalidar la lista y, si aplica, el detalle y el resumen.
 
 ## 4. Autenticación y sesión
 
-- `authStore` (Zustand + persist) maneja `user`, `isAuthenticated`, `sessionExpiry`, `accessToken`, `refreshToken`.
-- `api.js` inyecta `Authorization` y maneja el refresh con cola de peticiones.
+- `authStore` (Zustand, sin persist) mantiene `user`, `isAuthenticated` y `accessToken` **solo en memoria**; el refresh nunca llega a JavaScript.
+- `initializeAuth` restaura la sesión al arrancar usando la cookie de refresh y deduplica StrictMode.
+- `api.js` inyecta `Authorization` y comparte una única promesa de refresh entre peticiones concurrentes.
+- El refresh se envía **sin body**; la cookie `HttpOnly` es el único transporte.
 - `ProtectedRoute` solo valida autenticación; **cada página debe validar el rol**.
 - No dupliques lógica de refresh en componentes.
-- No agregues nuevos secretos a `localStorage`.
-- **Riesgo vigente:** access/refresh tokens persistidos en `localStorage`. No empeorar; si se propone migración, hacerla en un sprint dedicado con aprobación.
+- Prohibido persistir access/refresh tokens en `localStorage`, `sessionStorage` o IndexedDB.
 - Mantén `withCredentials: true` y la compatibilidad con cookies `httpOnly`.
+- iOS cross-site sin cookie: la sesión se degrada a login al expirar el access token; no reintroducir el refresh en body como fallback.
 
 ---
 
@@ -139,7 +141,7 @@ Las mutaciones deben invalidar la lista y, si aplica, el detalle y el resumen.
 - No confíes en datos del cliente para permisos, cálculos críticos o scoping.
 - Sanitiza/valida URLs y parámetros.
 - No expongas tokens en logs, consola, URLs ni mensajes de error.
-- **Riesgo vigente:** tokens en `localStorage`; ver §4.
+- **R-03 resuelto:** tokens fuera de `localStorage`; access en memoria y refresh por cookie `HttpOnly`.
 - **Riesgo vigente:** cookies `sameSite: 'none'` en producción; si se usa autenticación por cookie, revisar CSRF con el backend.
 
 ---

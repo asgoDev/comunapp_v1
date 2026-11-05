@@ -12,7 +12,7 @@ import { Logo } from '../../components/ui/Logo'
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading, sessionNotice } = useAuthStore();
 
   const {
     register,
@@ -105,6 +105,12 @@ export default function LoginPage() {
               Ingrese sus credenciales para acceder al sistema
             </p>
           </div>
+
+          {sessionNotice && (
+            <div className="mb-5 rounded-lg border border-error/20 bg-error/10 p-md text-body-sm text-error">
+              {sessionNotice}
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">

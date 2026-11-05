@@ -75,7 +75,7 @@
 10. **Verificación antes de cerrar.**
     - Backend: ejecutar `node --check` sobre los archivos tocados y, si aplica, smoke test HTTP contra la API.
     - Frontend: ejecutar `pnpm build` en `frontend/`.
-    - No existe suite de tests automatizada todavía. Si tocas lógica crítica (auth, scoping, validaciones, cálculos), añade o propone tests y documenta la evidencia. No cierres con “debería funcionar”.
+    - Existe cobertura automatizada acotada de auth y scoping (`pnpm test` en backend y frontend), pero no una suite completa ni lint. Si tocas lógica crítica, añade o amplía tests y documenta la evidencia. No cierres con “debería funcionar”.
 
 11. **Idioma y estilo.**
     - UI, mensajes de error, documentación y commits en **español**.
@@ -130,7 +130,7 @@
 - JWT: `{ id, role }`; access 15 min, refresh 8 h (configurables por entorno).
 - Refresh tokens revocados se guardan como hash SHA-256 en `TokenBlacklist` con TTL.
 - El refresh rota de forma atómica: el token presentado se invalida en `TokenBlacklist` antes de emitir el nuevo par y cada refresh incluye un `jti` único (R-02 resuelto).
-- **Deuda de seguridad:** el frontend persiste tokens en `localStorage`. No empeorar este patrón; evaluar migración a cookies `httpOnly` + memoria.
+- El refresh token viaja solo por cookie `HttpOnly`; el frontend mantiene el access token en memoria y nunca persiste tokens (R-03 resuelto). En iOS cross-site sin cookie, la sesión se degrada a login al expirar el access token.
 
 ### 3.5 Validación y errores
 

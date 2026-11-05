@@ -21,12 +21,13 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 
 ## Estado actual (2026-11-04)
 
-- **Auth:** login por email/cédula, refresh con rotación atómica y `jti`, logout con blacklist, `/me`, cookies `httpOnly` + access token en body, rate limiting. El refresh solo viaja por cookie (backend R-03 listo; frontend pendiente).
+- **Auth:** login por email/cédula, refresh con rotación atómica y `jti`, logout con blacklist, `/me`, cookies `httpOnly` + access token en body, rate limiting. El refresh solo viaja por cookie; el frontend mantiene el access en memoria (R-03 resuelto).
 - **Usuarios:** CRUD con scoping para `JEFE_COMUNIDAD` (solo `LIDER_CALLE` de su comunidad), soft delete, cédula inmutable.
 - **Comunidades:** CRUD admin, soft delete, resumen, validación de duplicados; lectura con scoping para `JEFE_COMUNIDAD` (R-01 resuelto).
 - **Habitantes:** CRUD con scoping por comunidad/calle, unicidad de cédula por comunidad, carga masiva admin (máx. 500; 207 parcial), vistas casas/listado y export PDF.
 - **Dashboard:** métricas por rol. **Auditoría:** logs de escritura (solo admin). **Perfil:** datos propios y cambio de contraseña.
-- **Frontend:** temas por variables CSS (`default`, `emerald`, `matrix`), layout responsive, TanStack Query, RHF+Zod, toasts y export PDF.
+- **Frontend:** temas por variables CSS (`default`, `emerald`, `matrix`), layout responsive, TanStack Query, RHF+Zod, toasts y export PDF. Auth sin persistencia: access en memoria, refresh por cookie y bootstrap con fallback a login en iOS cross-site.
+- **Pruebas:** backend 21/21 (`pnpm test`); frontend 9/9 (`pnpm test` con Vite SSR). Faltan lint y cobertura amplia.
 
 ## Decisiones vigentes
 
@@ -37,6 +38,8 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 - Listas: `{ <colección>, pagination }`; mutaciones: `{ message, <entidad> }`; errores: `{ success: false, message, code? }`.
 - Auditoría global en `POST/PUT/PATCH/DELETE`; body saneado; fire-and-forget.
 - Rotación de refresh con `jti` único y consumo atómico en `TokenBlacklist`; el TTL fijo de 8 h exige que `JWT_REFRESH_EXPIRES` no sea mayor.
+- El refresh solo viaja por cookie `HttpOnly`; el frontend no persiste tokens. En iOS cross-site sin cookie se exige login al expirar el access token (decisión aprobada del usuario).
+- R-03 backend/frontend debe desplegarse en una sola ventana; el backend cookie-only no es compatible con el frontend anterior.
 - `backend_api_guide.md` y `README.md` fueron reescritos y sincronizados el 2026-11-04; la verdad sigue siendo el código.
 
 ## Riesgos y deudas conocidas
@@ -45,7 +48,7 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 
 - **R-01 (P0, seguridad):** resuelto el 2026-11-04. `JEFE_COMUNIDAD` solo lista/lee su comunidad; acceso cruzado → `403`; resumen valida antes de contar.
 - **R-02 (P0, seguridad):** resuelto el 2026-11-04. El refresh presentado se consume atómicamente y se rechaza su reuso/concurrencia; cada refresh lleva `jti` único.
-- **R-03 (P0, seguridad):** en curso. Backend ya es cookie-only y no expone refresh en JSON; falta migrar el frontend y desplegar ambos juntos.
+- **R-03 (P0, seguridad):** resuelto el 2026-11-04. Refresh solo por cookie `HttpOnly`, access en memoria, `localStorage` heredado eliminado y fallback iOS validado por prueba automatizada de ausencia de cookie.
 - **R-04 (P1, seguridad):** `$regex` construido con entrada del usuario en comunidades/habitantes.
 - **R-05 (P1, integridad):** cédula de habitante sin índice único compuesto; riesgo de carrera.
 - **R-06 (P1, seguridad):** CSRF con cookies `sameSite: 'none'` y fallback de cookie.
@@ -58,9 +61,9 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 
 ## Próximos pasos recomendados
 
-1. Completar **R-03** en frontend y desplegar backend+frontend en la misma ventana. **No desplegar el backend actual con el frontend anterior.**
+1. Desplegar backend+frontend de R-03 en la misma ventana; no desplegar el backend cookie-only con el frontend anterior.
 2. Remediar P1: **R-04**, **R-05**, **R-06**, **R-07** y **R-08**.
-3. Ampliar la suite de pruebas (Vitest/RTL para frontend, lint) y añadir paginación server-side (**R-09**, **R-12**).
+3. Ampliar la suite de pruebas y añadir lint; paginación server-side (**R-09**, **R-12**).
 4. Resolver P2/P3 restantes según [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
 
 ## Referencias

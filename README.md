@@ -80,11 +80,13 @@ Variable principal: `VITE_API_URL` (URL completa del backend, incluyendo `/api`,
 | `backend/` | `pnpm run dev` | Servidor en modo watch |
 | `backend/` | `pnpm start` | Servidor en producción |
 | `backend/` | `pnpm run seed` | Crea el admin inicial |
+| `backend/` | `pnpm test` | Pruebas backend con `node:test` |
 | `frontend/` | `pnpm dev` | Vite en desarrollo |
 | `frontend/` | `pnpm build` | Build de producción |
+| `frontend/` | `pnpm test` | Pruebas de auth con `node:test` + Vite SSR |
 | `frontend/` | `pnpm preview` | Previsualiza el build |
 
-Actualmente no hay scripts de tests ni lint. Ver [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
+El lint y la cobertura amplia de frontend siguen pendientes (R-08). Ver [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
 
 ---
 
@@ -137,9 +139,9 @@ frontend/
 
 - Secretos solo en `.env`; nunca en código ni en documentación.
 - Contraseñas con bcrypt (12 rondas) y `select: false`.
-- JWT con refresh token y blacklist por hash SHA-256.
+- JWT con rotación atómica del refresh, `jti` único y blacklist por hash SHA-256.
 - `helmet`, CORS con credenciales, rate limiting y sanitización de Mongo activos.
-- El frontend persiste tokens en `localStorage`; es una deuda de seguridad conocida (riesgo R-03).
+- El refresh token viaja solo por cookie `HttpOnly`; el frontend mantiene el access token únicamente en memoria (R-03 resuelto).
 - Revisa [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md) antes de tocar auth, scoping o formularios.
 
 ---
@@ -148,7 +150,7 @@ frontend/
 
 - Módulos funcionales: autenticación, usuarios, comunidades, habitantes (incluida carga masiva y PDF), dashboard, auditoría y perfil.
 - La documentación base fue consolidada el **2026-11-04**.
-- Pendientes principales: migración de tokens fuera de `localStorage`, CSRF, cobertura completa de pruebas/lint y paginación server-side en habitantes.
+- Pendientes principales: CSRF, cobertura completa de pruebas/lint y paginación server-side en habitantes.
 
 ---
 

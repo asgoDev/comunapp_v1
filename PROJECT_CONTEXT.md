@@ -217,7 +217,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 - Comandos:
   - Backend: `pnpm install`, `pnpm run seed`, `pnpm run dev`, `pnpm start`.
   - Frontend: `pnpm install`, `pnpm dev`, `pnpm build`, `pnpm preview`.
-- Backend dispone de pruebas con `node:test` (`pnpm test`); frontend aún no tiene suite automatizada ni lint.
+- Backend y frontend disponen de pruebas acotadas con `node:test` (`pnpm test` en cada carpeta); faltan lint y cobertura amplia.
 
 ---
 
@@ -225,7 +225,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 
 - Módulos funcionales: auth, usuarios, comunidades, habitantes (incluida carga masiva y PDF), dashboard, auditoría y perfil.
 - La estética usa Tailwind con tokens CSS y tres temas.
-- Hay deudas de seguridad y documentación registradas en [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md) y resumidas en [`MEMORY.md`](./MEMORY.md). Las principales: tokens en `localStorage`, regex sin escapar y cobertura de tests incompleta. R-01 (scoping de comunidades) y R-02 (rotación de refresh) quedaron resueltos el 2026-11-04.
+- Hay deudas de seguridad y documentación registradas en [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md) y resumidas en [`MEMORY.md`](./MEMORY.md). Las principales: CSRF, regex sin escapar y cobertura de tests incompleta. R-01 (scoping de comunidades), R-02 (rotación de refresh) y R-03 (tokens fuera de `localStorage`) quedaron resueltos el 2026-11-04.
 - `README.md` y `backend_api_guide.md` fueron reescritos y sincronizados el 2026-11-04.
 
 ---

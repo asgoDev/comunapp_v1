@@ -3,7 +3,7 @@ import api from './api';
 export const authService = {
   login: (identifier, password) =>
     api.post('/auth/login', { identifier, password }),
-  logout: (refreshToken) => api.post('/auth/logout', { refreshToken }),
+  logout: () => api.post('/auth/logout'),
   me: () => api.get('/auth/me'),
-  refresh: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
+  refresh: () => api.post('/auth/refresh'),
 };

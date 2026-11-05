@@ -23,36 +23,28 @@ import ProfilePage from './pages/Profile/ProfilePage';
 
 function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const isCheckingAuth = useAuthStore((s) => s.isCheckingAuth);
-  const sessionExpiry = useAuthStore((s) => s.sessionExpiry);
+  const isInitializing = useAuthStore((s) => s.isInitializing);
   const checkAuth = useAuthStore((s) => s.checkAuth);
+  const initializeAuth = useAuthStore((s) => s.initializeAuth);
   const theme = useUiStore((s) => s.theme);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const verifySession = async (silent = false) => {
-      if (!sessionExpiry || Date.now() > Number(sessionExpiry)) {
-        await useAuthStore.getState().logout();
-        return;
-      }
-
-      checkAuth({ silent });
+    const verifySession = () => {
+      checkAuth({ silent: true });
     };
 
-    verifySession(false);
-
-    const interval = setInterval(() => {
-      verifySession(true);
-    }, 5 * 60 * 1000);
-
-    const handleFocus = () => {
-      verifySession(true);
-    };
-    window.addEventListener('focus', handleFocus);
+    const interval = setInterval(verifySession, 5 * 60 * 1000);
+    window.addEventListener('focus', verifySession);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('focus', verifySession);
     };
   }, [checkAuth, isAuthenticated]);
 
@@ -60,7 +52,7 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  if (isAuthenticated && isCheckingAuth) {
+  if (isInitializing) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background font-montserrat">
         <div className="relative flex items-center justify-center mb-6">

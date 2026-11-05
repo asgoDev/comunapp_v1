@@ -32,7 +32,7 @@ El login también establece cookies `httpOnly`:
 - `accessToken`
 - `refreshToken`
 
-El refresh token **nunca** se devuelve en el JSON. La cookie es el único canal para enviarlo.
+El refresh token **nunca** se devuelve en el JSON. La cookie es el único canal para enviarlo (R-03 resuelto).
 
 ### 1.2 Roles
 
