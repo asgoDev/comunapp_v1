@@ -1,124 +1,163 @@
-# Plantilla de Login & Control de Usuarios
+# ComunApp v1
 
-Base full-stack de código abierto con **autenticación JWT**, **control de acceso basado en roles (RBAC)** (roles `admin` / `usuario`) y **auditoría** de acciones integrado en una interfaz moderna y responsiva.
+Aplicación web de **gestión comunitaria** para Venezuela. Permite administrar comunidades, calles, viviendas y habitantes, con acceso segmentado por rol, auditoría de acciones y exportación de reportes en PDF.
 
-Esta plantilla está diseñada para servir como punto de partida para cualquier sistema web que requiera control de acceso y gestión de usuarios.
+> Este proyecto conserva la base de autenticación de una plantilla full-stack, pero el dominio actual es la gestión de comunidades y habitantes.
 
-## Características principales
+---
 
-- **Autenticación robusta**: Login, registro de usuarios, cookies HttpOnly seguras y flujo de renovación con refresh tokens.
-- **Panel Administrativo (CRUD)**: Gestión completa de usuarios (creación, edición, consulta, activación/desactivación) protegida para roles de administrador.
-- **Dashboard de Control**: Estadísticas básicas en tiempo real (usuarios registrados, activos, eventos de auditoría).
-- **Diseño Moderno & Responsivo**: Interfaz fluida y limpia, sidebar colapsable, menú adaptativo y alertas de sistema.
-- **Sistema de Auditoría**: Registro automático de eventos clave en el sistema para control de seguridad.
-- **Validación robusta**: Validación de esquemas tanto en frontend como en backend usando Zod.
-- **Gestión de Estado**: Manejo de estado del cliente mediante Zustand (`authStore`, `userStore`, `uiStore`).
-- **Seguridad**: Implementación de Helmet, rate-limiting contra ataques de fuerza bruta y saneamiento de consultas de MongoDB.
+## Stack
 
-## Stack Tecnológico
+| Capa | Tecnologías |
+|---|---|
+| Backend | Node.js >= 18 (ES Modules), Express 4, Mongoose 8, Zod 3, JWT, bcrypt |
+| Frontend | React 18, Vite 6, Tailwind CSS 3, TanStack Query v5, Zustand 5, react-hook-form + Zod, axios |
+| Base de datos | MongoDB / Mongoose |
+| Auth | Access token 15 min + refresh token 8 h; cookies `httpOnly` + header `Authorization` |
+| Reportes | jsPDF + jspdf-autotable |
+| Paquetes | **pnpm** (obligatorio) |
 
-| Capa | Tecnologías utilizadas |
-|------|-------------|
-| **Backend** | Node.js (ESM) + Express 4 + Mongoose 8 + Zod |
-| **Frontend** | React 18 + Vite + Tailwind CSS + Zustand |
-| **Base de Datos** | MongoDB (usando Mongoose) |
-| **Seguridad / Auth** | JWT (Access + Refresh Token) + Bcrypt |
+---
 
-## Estructura del Proyecto
+## Roles
+
+| Rol | Alcance |
+|---|---|
+| `admin` | Administración global |
+| `JEFE_COMUNIDAD` | Su comunidad; lectura de habitantes; gestiona líderes de calle |
+| `LIDER_CALLE` | Su comunidad + su calle; CRUD de habitantes de su calle |
+
+La autorización se aplica en el backend. Ocultar una opción en la UI no es una medida de seguridad.
+
+---
+
+## Requisitos
+
+- Node.js >= 18.
+- `pnpm` instalado.
+- Una base de datos MongoDB accesible (local o Atlas).
+
+---
+
+## Inicio rápido
+
+### 1. Backend
+
+```bash
+cd backend
+cp .env.example .env
+# Edita .env con tus credenciales y secretos
+pnpm install
+pnpm run seed     # crea el usuario admin inicial desde SEED_*
+pnpm run dev      # node --watch src/server.js
+```
+
+Variables de entorno del backend (solo nombres):
+
+`PORT`, `NODE_ENV`, `MONGO_URI`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES`, `JWT_REFRESH_EXPIRES`, `FRONTEND_URL`, `RENDER`, `SEED_NOMBRE`, `SEED_APELLIDO`, `SEED_CEDULA`, `SEED_EMAIL`, `SEED_PASSWORD`.
+
+> No commitees `.env`. Usa `.env.example` con placeholders.
+> El servidor usa `PORT || 3000`; el proxy de Vite apunta a `5000`. Unifica el puerto en tu `.env` o ajusta `frontend/vite.config.js`.
+
+### 2. Frontend
+
+```bash
+cd frontend
+cp .env.example .env
+# En desarrollo, VITE_API_URL puede quedar vacío y se usa el proxy de Vite
+pnpm install
+pnpm dev
+```
+
+Variable principal: `VITE_API_URL` (URL completa del backend, incluyendo `/api`, sin barra final). Solo es obligatoria en producción; en desarrollo se usa el proxy.
+
+---
+
+## Scripts
+
+| Carpeta | Comando | Descripción |
+|---|---|---|
+| `backend/` | `pnpm run dev` | Servidor en modo watch |
+| `backend/` | `pnpm start` | Servidor en producción |
+| `backend/` | `pnpm run seed` | Crea el admin inicial |
+| `frontend/` | `pnpm dev` | Vite en desarrollo |
+| `frontend/` | `pnpm build` | Build de producción |
+| `frontend/` | `pnpm preview` | Previsualiza el build |
+
+Actualmente no hay scripts de tests ni lint. Ver [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
+
+---
+
+## Estructura
 
 ```text
 backend/
 ├── src/
-│   ├── infrastructure/             # Configuración de servicios externos e infraestructura
-│   │   ├── database/
-│   │   │   └── db.js               # Conexión a MongoDB (Mongoose)
-│   │   └── jwt/                    # Proveedores y configs de JWT (tokens de acceso/refresh)
-│   │
-│   ├── modules/                    # Módulos de dominio y lógica de negocio
-│   │   ├── auditoria/              # Logs de auditoría
-│   │   │   ├── auditoria.controller.js
-│   │   │   ├── auditoria.model.js
-│   │   │   ├── auditoria.routes.js
-│   │   │   └── auditoria.service.js
-│   │   │
-│   │   ├── auth/                   # Autenticación (Login, refresh, logout, me)
-│   │   │   ├── auth.controller.js
-│   │   │   ├── auth.model.js
-│   │   │   ├── auth.routes.js
-│   │   │   ├── auth.service.js
-│   │   │   └── auth.validation.js
-│   │   │
-│   │   ├── dashboard/              # Estadísticas e información del dashboard
-│   │   │   ├── dashboard.controller.js
-│   │   │   ├── dashboard.routes.js
-│   │   │   └── dashboard.service.js
-│   │   │
-│   │   └── users/                  # Gestión de usuarios
-│   │       ├── user.controller.js
-│   │       ├── user.model.js
-│   │       ├── user.routes.js
-│   │       ├── user.service.js
-│   │       └── user.validation.js
-│   │
-│   ├── shared/                     # Código compartido y middlewares globales
-│   │   ├── errors/                 # Clases de errores personalizadas
-│   │   ├── middleware/             # Middlewares (autenticación, rate limiter, auditoría, manejo de errores, validaciones)
-│   │
-│   └── server.js                   # Punto de entrada de la aplicación Express
-│
-├── .env.example                    # Plantilla de variables de entorno
-├── package.json                    # Dependencias y scripts npm/pnpm
-├── request.http                    # Archivo de pruebas rápidas (VS Code REST Client)
-└── pnpm-workspace.yaml             # Configuración de monorepo si aplica
+│   ├── infrastructure/     # MongoDB y JWT
+│   ├── modules/            # auth, users, comunidades, habitantes, dashboard, auditoria, profile
+│   ├── shared/             # errores y middlewares
+│   └── server.js
+├── scripts/seed.js
+└── package.json
+
+frontend/
+├── src/
+│   ├── components/         # layout y UI reutilizable
+│   ├── hooks/              # TanStack Query por módulo
+│   ├── pages/              # Login, Dashboard, Comunidades, Habitantes, Usuarios, Auditoría, Perfil
+│   ├── services/           # axios por módulo
+│   ├── stores/             # authStore, uiStore
+│   ├── utils/              # formatters, pdfExport, venezuela.json
+│   ├── validations/        # Zod por módulo
+│   ├── App.jsx
+│   └── main.jsx
+└── package.json
 ```
 
 ---
 
+## Documentación
 
-## Inicio Rápido
+| Documento | Contenido |
+|---|---|
+| [`AGENTS.md`](./AGENTS.md) | Gobernanza, reglas transversales e índice |
+| [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md) | Contexto global del sistema |
+| [`backend_api_guide.md`](./backend_api_guide.md) | Contrato HTTP completo del backend |
+| [`MEMORY.md`](./MEMORY.md) | Estado inter-sprint, decisiones y riesgos |
+| [`conocimiento_back.md`](./conocimiento_back.md) | Decisiones durables del backend |
+| [`conocimiento_front.md`](./conocimiento_front.md) | Decisiones durables del frontend |
+| [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md) | Registro priorizado de riesgos y plan de remediación |
+| [`.agents/rules/`](./.agents/rules/) | Reglas operativas de backend, frontend y documentación |
+| [`documentacion/implementado_backend.md`](./documentacion/implementado_backend.md) | Historial de implementaciones backend |
+| [`documentacion/implementado_frontend.md`](./documentacion/implementado_frontend.md) | Historial de implementaciones frontend |
 
-### 1. Configuración del Backend
+---
 
-1. Ingresa a la carpeta del backend:
-   ```bash
-   cd backend
-   ```
-2. Crea el archivo de configuración `.env` a partir de la plantilla:
-   ```bash
-   cp .env.example .env
-   ```
-3. Edita `.env` con tus credenciales de MongoDB, claves secretas para JWT y URL del frontend.
-4. Instala las dependencias y ejecuta el seed inicial para el administrador:
-   ```bash
-   pnpm install
-   pnpm run seed          # Crea el usuario administrador por defecto
-   ```
-5. Inicia el servidor de desarrollo:
-   ```bash
-   pnpm run dev
-   ```
+## Seguridad
 
-### 2. Configuración del Frontend
+- Secretos solo en `.env`; nunca en código ni en documentación.
+- Contraseñas con bcrypt (12 rondas) y `select: false`.
+- JWT con refresh token y blacklist por hash SHA-256.
+- `helmet`, CORS con credenciales, rate limiting y sanitización de Mongo activos.
+- El frontend persiste tokens en `localStorage`; es una deuda de seguridad conocida (riesgo R-03).
+- Revisa [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md) antes de tocar auth, scoping o formularios.
 
-1. Ingresa a la carpeta del frontend:
-   ```bash
-   cd frontend
-   ```
-2. Crea el archivo de configuración `.env` a partir de la plantilla:
-   ```bash
-   cp .env.example .env
-   ```
-3. Ajusta `VITE_API_URL` si es necesario (por defecto apunta a `http://localhost:3000/api` en desarrollo gracias al proxy de Vite).
-4. Instala las dependencias y corre el servidor de desarrollo:
-   ```bash
-   pnpm install
-   pnpm run dev
-   ```
+---
 
-## Endpoints de la API Relevantes
+## Estado actual
 
-- `GET /api/health` — Estado y salud del servidor.
-- `POST /api/auth/login` — Inicio de sesión y asignación de tokens.
-- `POST /api/auth/refresh` — Refresco del token de acceso expirado.
-- `GET /api/dashboard/stats` — Métricas generales (solo administradores).
-- `CRUD /api/users` — Gestión completa de usuarios (requiere privilegios de administrador).
+- Módulos funcionales: autenticación, usuarios, comunidades, habitantes (incluida carga masiva y PDF), dashboard, auditoría y perfil.
+- La documentación base fue consolidada el **2026-11-04**.
+- Pendientes principales: scoping de comunidades, rotación de refresh tokens, migración de tokens fuera de `localStorage`, pruebas automatizadas y paginación server-side en habitantes.
+
+---
+
+## Convenciones de trabajo
+
+- Un módulo por sprint y una capa a la vez (backend o frontend).
+- `pnpm` siempre.
+- Mensajes, UI y commits en español.
+- Cambios mínimos; consultar antes de refactors amplios o cambios de contrato.
+- Propuesta de commit semántica al cerrar cada tarea.
+
+Ver [`AGENTS.md`](./AGENTS.md) para las reglas completas.

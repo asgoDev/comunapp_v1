@@ -1,0 +1,7 @@
+# Documentación local / planes de sprint (no versionar)
+documentacion/local/
+
+# Artefactos locales
+*.log
+.DS_Store
+Thumbs.db
