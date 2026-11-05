@@ -12,8 +12,15 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
  *  4. Fallback 500      — cualquier error no controlado; oculta detalles en producción
  */
 const errorHandler = (err, req, res, _next) => {
-    // Siempre loguear en el servidor con stack completo
-    console.error(`❌ [${req.method}] ${req.originalUrl}`, err);
+    // No registrar body, query, URL completa ni mensajes del error: pueden contener PII.
+    const routePath = req.route?.path
+        ? `${req.baseUrl}${req.route.path}`
+        : req.path;
+    console.error(`❌ [${req.method}] ${routePath}`, {
+        name: err.name,
+        code: err.code,
+        statusCode: err.statusCode,
+    });
 
     // ── 1. Errores operacionales propios (AppError) ──────────────────────────
     if (err instanceof AppError) {

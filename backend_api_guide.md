@@ -2,14 +2,14 @@
 
 > **Contrato HTTP del backend.** La fuente de verdad es `backend/src/`; si esta guía y el código discrepan, prevalece el código y se corrige la guía.
 >
-> **Última actualización:** 2026-11-04.
+> **Última actualización:** 2026-11-05.
 > **Base URL:** `http://localhost:5000/api` según la convención del proxy de Vite. El servidor usa `PORT || 3000`; verifica el `.env` local. En producción, la URL la define `VITE_API_URL`.
 
 ---
 
 ## 1. Convenciones generales
 
-- Todas las peticiones y respuestas usan JSON (`Content-Type: application/json`).
+- Las rutas usan JSON (`Content-Type: application/json`), excepto el registro de pago de Bombonas, que recibe `multipart/form-data`.
 - Fechas en ISO 8601. `fechaNacimiento` se envía como `YYYY-MM-DD`.
 - IDs MongoDB en formato hexadecimal de 24 caracteres.
 - Paginación estándar: `{ total, page, limit, pages }`.
@@ -19,6 +19,8 @@
 - Errores de validación Zod: `{ success: false, message: "Error de validación", errors: [{ campo, mensaje }] }`.
 - Los errores de `authenticate`/`authorize` devuelven solo `{ message }` (sin `success` ni `code`).
 - Rate limiting: 200 peticiones/15 min por IP en toda la API; 10 intentos/15 min en login. Al excederse: `429`.
+- Bombonas público: `GET` 60/15 min por IP; `POST` 10/hora por IP y 100/hora por combinación de comunidad/IP. Los limitadores específicos usan memoria local por proceso; ver R-22 antes de escalar a varias instancias.
+- `PATCH` y el header `Idempotency-Key` están permitidos por CORS.
 
 ### 1.1 Autenticación
 
@@ -744,7 +746,133 @@ Campos editables: `nombre`, `apellido`, `email`, `telefono`, `direccion`, `fecha
 
 ---
 
-## 10. Matriz de roles
+## 10. Bombonas (`/api/bombonas` y `/api/publico/bombonas`)
+
+### 10.1 Administración de jornadas
+
+Las rutas privadas requieren autenticación y rol `admin` o `JEFE_COMUNIDAD`. `LIDER_CALLE` no tiene acceso.
+Las mutaciones privadas requieren explícitamente `Authorization: Bearer <accessToken>` para no depender del fallback de cookie en escrituras (mitigación CSRF específica del módulo).
+
+- `admin` debe enviar la comunidad al crear la jornada.
+- `JEFE_COMUNIDAD` crea y consulta únicamente la comunidad asignada en la base de datos. Si intenta indicar otra comunidad recibe `403 FORBIDDEN`.
+- Solo existe una jornada activa por comunidad. Los precios y datos de pago móvil no se editan; se cierra la jornada y se crea otra.
+- Los precios se reciben en VES con máximo dos decimales y se almacenan en céntimos enteros.
+
+#### `POST /bombonas/jornadas`
+
+**Body JSON**
+
+```json
+{
+  "comunidad": "64f0c2a1b2c3d4e5f6071829",
+  "precios": { "grande": 250, "mediana": 180, "pequena": 120 },
+  "pagoMovil": {
+    "banco": "Banesco",
+    "telefono": "0414-1234567",
+    "documento": "V-12345678",
+    "titular": "Ana Perez"
+  }
+}
+```
+
+`comunidad` es requerida para `admin` y opcional para `JEFE_COMUNIDAD` (el servidor siempre deriva la asignación del usuario autenticado). Cada precio debe ser positivo, máximo 50.000.000 VES, y admitir máximo dos decimales. Los datos de pago móvil son obligatorios.
+
+**Respuesta 201:** `{ "message": "Jornada de bombonas creada exitosamente.", "jornada": { "_id": "...", "comunidad": "...", "precios": { "grande": 250, "mediana": 180, "pequena": 120 }, "moneda": "VES", "activa": true, "pagoMovil": { "banco": "Banesco", "telefono": "0414-1234567", "documento": "V-12345678", "titular": "Ana Perez" } } }`.
+
+#### Lectura y cierre
+
+- `GET /bombonas/jornadas?page=1&limit=20&comunidadId=<id>&activa=true|false`: listado paginado; máximo 100 por página. Jefe siempre queda filtrado a su comunidad.
+- `GET /bombonas/jornadas/:id`: detalle dentro del scope del rol.
+- `PATCH /bombonas/jornadas/:id/cerrar`: body opcional `{ "motivo": "Fin de la distribución" }`; repetir cierre es idempotente. El motivo, si se envía, debe tener 5–300 caracteres.
+
+El servidor crea los índices de jornadas/pagos antes de comenzar a escuchar. Las transacciones de alta de pagos requieren MongoDB replica set o clúster sharded; un MongoDB standalone no es compatible.
+
+### 10.2 Consulta de jornada pública
+
+#### `GET /publico/bombonas/comunidades/:comunidadId/jornada-activa`
+
+No requiere autenticación. Devuelve `Cache-Control: no-store` y no expone habitantes, pagos ni identificadores internos de jornada.
+
+```json
+{
+  "comunidad": { "_id": "64f0c2...", "nombre": "Comunidad Ejemplo" },
+  "jornada": {
+    "precios": { "grande": 250, "mediana": 180, "pequena": 120 },
+    "moneda": "VES",
+    "pagoMovil": {
+      "banco": "Banesco",
+      "telefono": "0414-1234567",
+      "documento": "V-12345678",
+      "titular": "Ana Perez"
+    }
+  },
+  "casas": ["1", "2", "10"],
+  "limites": { "maxPorTipo": 10, "maxTotal": 20 }
+}
+```
+
+`casas` contiene números únicos de 1–8 dígitos existentes en `Habitante` para esa comunidad, ordenados numéricamente. Comunidad inexistente/inactiva o sin jornada activa devuelve `404 JORNADA_NO_ACTIVA` con mensaje genérico.
+
+> **Integridad pendiente (R-29):** el modelo territorial agrupa por calle y número, pero esta API solo publica el número por el contrato solicitado. Si una comunidad repite números entre calles, no se identifica una vivienda única; acordar `calle` o ID de casa antes de integrar frontend/producción.
+
+### 10.3 Registro público de pago
+
+#### `POST /publico/bombonas/comunidades/:comunidadId/pagos`
+
+No requiere autenticación. Content-Type: `multipart/form-data`. Header requerido: `Idempotency-Key` con UUID v4. Enviar la misma clave y el mismo payload devuelve `200` con el resultado original; reutilizar la clave con datos diferentes devuelve `409 PAGO_IDEMPOTENCIA_CONFLICTO`.
+
+| Campo multipart | Requerido | Reglas |
+|---|---:|---|
+| `numeroCasa` | Sí | 1–8 dígitos; debe existir en la comunidad |
+| `propietario` | Sí | Nombre de 2–120 caracteres |
+| `referencia` | Sí | 4–40 letras/números/guiones; se normaliza a mayúsculas |
+| `bombonasGrande` | Sí | Entero de 0 a 10 |
+| `bombonasMediana` | Sí | Entero de 0 a 10 |
+| `bombonasPequena` | Sí | Entero de 0 a 10 |
+| `website` | No | Honeypot; debe permanecer vacío |
+| `comprobante` | Sí | Un archivo JPG, PNG o PDF; máximo 5 MiB |
+
+Se exige al menos una bombona y máximo 20 en total. No se aceptan campos extras, precios ni total del cliente. El backend valida la firma binaria, confirma la comunidad/casa/jornada activa y calcula el total usando los precios vigentes. Guarda el snapshot de precios y el total en céntimos. La referencia solo puede usarse una vez por jornada.
+
+**Respuesta 201** (reintento idéntico: `200`):
+
+```json
+{
+  "message": "Pago registrado exitosamente.",
+  "pago": {
+    "codigoSeguimiento": "PAGO-...",
+    "estado": "pendiente",
+    "total": 490,
+    "moneda": "VES",
+    "createdAt": "2026-11-05T12:00:00.000Z"
+  }
+}
+```
+
+El comprobante se almacena como Buffer dentro del documento MongoDB, no se sirve como contenido estático y solo se descarga por la ruta privada. El acceso público deliberadamente revela los datos de Pago Móvil configurados en la jornada.
+
+### 10.4 Consulta y revisión de pagos
+
+- `GET /bombonas/pagos?page=1&limit=20&comunidadId=<id>&jornadaId=<id>&estado=pendiente|verificado|rechazado&search=<texto>`: listado paginado; `limit` máximo 100. La búsqueda escapa regex; el jefe solo consulta su comunidad.
+- `GET /bombonas/pagos/:id`: detalle sin bytes del comprobante.
+- `GET /bombonas/pagos/:id/comprobante`: descarga autenticada como `attachment`, con `nosniff` y `no-store`; admin global o jefe de esa comunidad.
+- `PATCH /bombonas/pagos/:id/revision`: `{ "estado": "verificado" }` o `{ "estado": "rechazado", "motivoRechazo": "La referencia no coincide con el comprobante." }`. Solo pagos `pendiente`; repetir el mismo estado final es idempotente; intentar el estado opuesto responde `409 PAGO_YA_REVISADO`.
+
+### 10.5 Límites y errores relevantes
+
+- Límite específico: lectura pública 60/15 min por IP; registro 10/h por IP y 100/h por combinación comunidad/IP, además del limitador global de API. Respuesta `429 RATE_LIMITED`.
+- Multipart limita Content-Length a 5 MiB + 32 KiB, un archivo, siete campos y ocho partes; se valida MIME, extensión y firma JPEG/PNG/PDF. Archivo grande → `413 FILE_TOO_LARGE`; tipo/firma inválidos → `415 INVALID_FILE_TYPE` / `INVALID_FILE_SIGNATURE`.
+- `400` validación / `COMUNIDAD_REQUIRED` / `IDEMPOTENCY_KEY_REQUIRED` / `INVALID_CONTENT_LENGTH` / `CASA_NO_ENCONTRADA`.
+- `401 BEARER_REQUIRED` si una mutación privada de Bombonas intenta autenticarse solo por cookie.
+- `403 FORBIDDEN` acceso de jefe a comunidad/pago ajeno.
+- `404 JORNADA_NO_ACTIVA`, `JORNADA_NOT_FOUND`, `PAGO_NOT_FOUND`, `COMPROBANTE_NOT_FOUND`.
+- `409 JORNADA_ACTIVA_EXISTENTE`, `REFERENCIA_DUPLICADA`, `PAGO_IDEMPOTENCIA_CONFLICTO`, `PAGO_YA_REVISADO`, `PAGO_DUPLICADO`.
+
+Las escrituras administrativas quedan auditadas; datos de Pago Móvil, motivos y texto libre sensible se redactan antes de persistirse en auditoría. Los envíos públicos guardados forman su propio registro operacional y no se escribe el archivo ni la clave de idempotencia en logs.
+
+---
+
+## 11. Matriz de roles
 
 | Módulo | `admin` | `JEFE_COMUNIDAD` | `LIDER_CALLE` |
 |---|---|---|---|
@@ -754,10 +882,11 @@ Campos editables: `nombre`, `apellido`, `email`, `telefono`, `direccion`, `fecha
 | Dashboard | Global | Su comunidad | Su calle |
 | Auditoría | Lectura | — | — |
 | Perfil | Propio | Propio | Propio |
+| Bombonas: jornadas/pagos | Global | Su comunidad | — |
 
 ---
 
-## 11. Códigos de error
+## 12. Códigos de error
 
 | Status | `code` | Contexto |
 |---|---|---|
@@ -780,6 +909,13 @@ Campos editables: `nombre`, `apellido`, `email`, `telefono`, `direccion`, `fecha
 | 404 | `HABITANTE_NOT_FOUND` | Habitante inexistente |
 | 409 | `COMUNIDAD_DUPLICATE` | Comunidad duplicada |
 | 409 | `HABITANTE_CEDULA_DUPLICATE` | Cédula duplicada en la comunidad |
+| 404 | `JORNADA_NO_ACTIVA` | Comunidad sin jornada pública disponible |
+| 409 | `JORNADA_ACTIVA_EXISTENTE` | Ya hay una jornada activa en la comunidad |
+| 409 | `REFERENCIA_DUPLICADA` | Referencia usada en la jornada |
+| 409 | `PAGO_IDEMPOTENCIA_CONFLICTO` | UUID idempotente usado con otro payload |
+| 409 | `PAGO_YA_REVISADO` | Intento de cambiar una revisión final |
+| 413 | `FILE_TOO_LARGE` / `REQUEST_TOO_LARGE` | Comprobante o multipart excede el límite |
+| 415 | `INVALID_FILE_TYPE` / `INVALID_FILE_SIGNATURE` | MIME, extensión o firma del archivo inválida |
 | 409 | — | Duplicado Mongo (`11000`) en cédula/email de usuario |
 | 400 | — | Error Zod / Mongoose ValidationError / CastError / JSON inválido |
 | 429 | — | Rate limit |
@@ -787,7 +923,7 @@ Campos editables: `nombre`, `apellido`, `email`, `telefono`, `direccion`, `fecha
 
 ---
 
-## 12. Estructura de carpetas del backend
+## 13. Estructura de carpetas del backend
 
 ```text
 backend/
@@ -802,7 +938,8 @@ backend/
 │   │   ├── habitantes/
 │   │   ├── dashboard/
 │   │   ├── auditoria/
-│   │   └── profile/
+│   │   ├── profile/
+│   │   └── bombonas/
 │   ├── shared/
 │   │   ├── errors/AppError.js
 │   │   └── middleware/
@@ -814,7 +951,7 @@ backend/
 
 ---
 
-## 13. Documentos relacionados
+## 14. Documentos relacionados
 
 - [`AGENTS.md`](./AGENTS.md) — gobernanza e índice.
 - [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md) — contexto global.

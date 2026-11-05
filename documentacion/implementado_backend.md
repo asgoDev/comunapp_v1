@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-11-05 — Módulo Bombonas: jornadas y pagos públicos
+
+- **Objetivo:** administrar jornadas por comunidad, aceptar pagos públicos con comprobante e idempotencia, y permitir su verificación/rechazo con scoping.
+- **Archivos:** `backend/src/modules/bombonas/` (modelos, validaciones, upload, service, controller y rutas); `backend/src/server.js`; `backend/src/shared/middleware/{validate,audit.middleware,security.middleware,errorHandler}.js`; `backend/test/bombona.*.test.js`; `backend/package.json`; `backend/pnpm-lock.yaml`.
+- **Cambios:**
+  - Rutas privadas para jornadas y revisión de pagos; públicas para consulta de jornada/casas y alta multipart de pagos.
+  - Roles `admin` global y `JEFE_COMUNIDAD` restringido a su comunidad; líderes sin acceso.
+  - Precios y totales almacenados en céntimos; validación de casa, referencias únicas, jornadas activas e idempotencia UUID v4 basada en hashes.
+  - Alta de pago y actualización atómica de jornada dentro de una transacción MongoDB. Índices únicos se crean al arrancar el servidor.
+  - Comprobante único JPG/PNG/PDF de hasta 5 MiB, con MIME/extensión y firma binaria validados; descarga privada como attachment.
+  - Limitadores específicos públicos, honeypot, CORS para `PATCH`/`Idempotency-Key`, búsqueda escapada y redacción de PII en auditoría/logs.
+  - Las escrituras privadas de Bombonas exigen `Authorization: Bearer` como mitigación CSRF para este módulo.
+- **Verificación:** `backend/pnpm test` → 38/38 OK; `node --check` para todos los archivos tocados; `git diff --check` OK. No se ejecutó smoke HTTP porque requiere base Mongo configurada; no se leyó `.env`.
+- **Riesgos / operación:** R-23 resuelto; R-22/R-24/R-25 parcialmente mitigados; R-26 frontend sigue abierto; R-27/R-28/R-29 abiertos. Antes de producción confirmar Mongo replica set/sharded, store de rate limit compartido, escaneo antimalware, manejo del buffer/retención y resolver identidad de casa entre calles.
+
+---
+
 ## 2026-11-04 — R-03 backend: contrato cookie-only
 
 - **Objetivo:** eliminar el refresh token de las respuestas JSON y del canal body; dejar la cookie `HttpOnly` como único transporte.

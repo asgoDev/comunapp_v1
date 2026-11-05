@@ -2,7 +2,7 @@
 
 > Contexto global y sintetizado del proyecto. Debe mantenerse al día con cada cambio relevante de backend o frontend. Para detalles operativos, consultar [`AGENTS.md`](./AGENTS.md), [`conocimiento_back.md`](./conocimiento_back.md) y [`conocimiento_front.md`](./conocimiento_front.md).
 >
-> Última actualización: 2026-11-04.
+> Última actualización: 2026-11-05.
 
 ---
 
@@ -42,7 +42,8 @@ backend/src/
 │   ├── habitantes/
 │   ├── dashboard/
 │   ├── auditoria/
-│   └── profile/
+│   ├── profile/
+│   └── bombonas/
 ├── shared/
 │   ├── errors/AppError.js
 │   └── middleware/
@@ -149,6 +150,13 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 | GET | `/profile` | Autenticado | Perfil propio |
 | PUT | `/profile` | Autenticado | Actualizar perfil |
 | PUT | `/profile/password` | Autenticado | Cambiar contraseña |
+| POST | `/bombonas/jornadas` | `admin`, `JEFE_COMUNIDAD` | Crear jornada de bombonas |
+| GET | `/bombonas/jornadas` | `admin`, `JEFE_COMUNIDAD` | Listar jornadas con scoping |
+| PATCH | `/bombonas/jornadas/:id/cerrar` | `admin`, `JEFE_COMUNIDAD` | Cerrar jornada |
+| GET | `/bombonas/pagos` | `admin`, `JEFE_COMUNIDAD` | Consultar pagos con scoping |
+| PATCH | `/bombonas/pagos/:id/revision` | `admin`, `JEFE_COMUNIDAD` | Verificar o rechazar pago |
+| GET | `/publico/bombonas/comunidades/:comunidadId/jornada-activa` | Público | Consultar precios, Pago Móvil y casas numéricas |
+| POST | `/publico/bombonas/comunidades/:comunidadId/pagos` | Público + rate limit/idempotencia | Registrar pago y comprobante |
 
 **Nota:** [`backend_api_guide.md`](./backend_api_guide.md) fue reescrita y sincronizada el 2026-11-04; verificar siempre contra el código si hay dudas.
 
@@ -183,6 +191,15 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 1. Middleware global en métodos de escritura.
 2. Al terminar la respuesta, registra usuario, módulo, acción, resultado, status, recurso y body saneado.
 3. Es fire-and-forget: no bloquea la operación principal.
+
+### Jornadas y pagos de bombonas
+
+1. `admin` crea jornada para una comunidad; `JEFE_COMUNIDAD` la crea solo para su comunidad, derivada de BD.
+2. Los precios se almacenan en céntimos enteros; solo se mantiene una jornada activa por comunidad.
+3. La lectura pública devuelve datos de Pago Móvil y números de casa numéricos; sin jornada activa responde `404 JORNADA_NO_ACTIVA`.
+4. El alta pública exige comprobante, referencia única por jornada y UUID `Idempotency-Key`; el servidor valida casa, jornada y archivo, y calcula el total.
+5. El alta actualiza la jornada y crea el pago dentro de una transacción MongoDB; requiere replica set o clúster sharded.
+6. Los pagos quedan `pendiente` hasta revisión de `admin` o jefe de la comunidad. Los comprobantes solo se descargan autenticado y con scoping.
 
 ---
 
@@ -224,7 +241,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 
 ## 9. Estado actual y límites
 
-- Módulos funcionales: auth, usuarios, comunidades, habitantes (incluida carga masiva y PDF), dashboard, auditoría y perfil.
+- Módulos funcionales: auth, usuarios, comunidades, habitantes (incluida carga masiva y PDF), dashboard, auditoría, perfil y bombonas. La vista frontend de bombonas aún usa mocks y requiere un sprint frontend independiente para consumir esta API.
 - La estética usa Tailwind con tokens CSS y tres temas.
 - Existe una vista pública frontend de demostración para registrar solicitudes de bombonas. Actualmente usa comunidades, casas y precios mock, calcula el total localmente y no realiza peticiones al backend.
 - Hay deudas de seguridad y documentación registradas en [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md) y resumidas en [`MEMORY.md`](./MEMORY.md). Las principales: CSRF, regex sin escapar y cobertura de tests incompleta. R-01 (scoping de comunidades), R-02 (rotación de refresh) y R-03 (tokens fuera de `localStorage`) quedaron resueltos el 2026-11-04.

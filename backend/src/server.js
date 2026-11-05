@@ -19,6 +19,10 @@ import habitanteRoutes from './modules/habitantes/habitante.routes.js';
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import auditoriaRoutes from './modules/auditoria/auditoria.routes.js';
 import profileRoutes from './modules/profile/profile.routes.js';
+import bombonaRoutes from './modules/bombonas/bombona.routes.js';
+import bombonaPublicRoutes from './modules/bombonas/bombona.public.routes.js';
+import JornadaBombona from './modules/bombonas/jornadaBombona.model.js';
+import PagoBombona from './modules/bombonas/pagoBombona.model.js';
 
 // ── Configuración ──
 const app = express();
@@ -36,8 +40,8 @@ app.use(mongoSanitize()); // Prevenir inyecciones NoSQL
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true, // Permitir cookies
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Idempotency-Key'],
     optionsSuccessStatus: 200 // Compatibilidad con navegadores antiguos y móviles
 }));
 
@@ -69,6 +73,8 @@ app.use('/api/habitantes', habitanteRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/auditoria', auditoriaRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/bombonas', bombonaRoutes);
+app.use('/api/publico/bombonas', bombonaPublicRoutes);
 
 // ── Ruta no encontrada ──
 app.use((_req, res) => {
@@ -84,6 +90,8 @@ app.use(errorHandler);
 
 const startServer = async () => {
     await connectDB();
+    // Los índices únicos implementan las garantías de jornada activa, referencia e idempotencia.
+    await Promise.all([JornadaBombona.createIndexes(), PagoBombona.createIndexes()]);
     app.listen(PORT, () => {
         console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
         console.log(`📍 Entorno: ${process.env.NODE_ENV || 'development'}`);

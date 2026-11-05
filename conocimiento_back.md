@@ -2,7 +2,7 @@
 
 > **Memoria de largo plazo del backend.** No es un changelog: registra decisiones, invariantes, contratos y trampas que un agente debe conocer antes de modificar el backend. El historial de cambios vive en [`documentacion/implementado_backend.md`](./documentacion/implementado_backend.md).
 >
-> Última revisión: 2026-11-04.
+> Última revisión: 2026-11-05.
 
 ---
 
@@ -45,6 +45,7 @@ Route
 | `dashboard` | `/api/dashboard` | Métricas según rol |
 | `auditoria` | `/api/auditoria` | Consulta de logs (solo admin) |
 | `profile` | `/api/profile` | Perfil propio y cambio de contraseña |
+| `bombonas` | `/api/bombonas`, `/api/publico/bombonas` | Jornadas por comunidad, registro público y revisión de pagos |
 
 **Shared:** `shared/errors/AppError.js`, `shared/middleware/{auth,audit,errorHandler,security,validate}.js`.
 **Infrastructure:** `infrastructure/database/db.js`, `infrastructure/jwt/jwt.utils.js`.
@@ -239,13 +240,27 @@ R-01 resuelto el 2026-11-04. La decisión es fail-closed: un jefe sin comunidad 
 
 ### 6.6 Transacciones
 
-Los CRUD actuales afectan un solo documento. Si una operación futura escribe en varias colecciones (por ejemplo, crear habitante + actualizar contadores), debe usar una sesión/transacción de MongoDB y manejar rollback.
+Los CRUD anteriores a Bombonas afectan un solo documento. Toda operación nueva que escriba en varias colecciones debe usar sesión/transacción de MongoDB y manejar rollback; el alta pública de Bombonas es el primer flujo transaccional.
+
+### 6.7 Bombonas
+
+- `JornadaBombona` mantiene como máximo una jornada activa por comunidad mediante índice único parcial `{ comunidad }` donde `activa: true`.
+- Precios y total se persisten en céntimos enteros; el API convierte a VES decimal al responder.
+- `PagoBombona` guarda snapshot de precios y comprobante privado. El campo binario y hashes de idempotencia/request usan `select: false` y nunca se serializan en respuestas.
+- La clave UUID v4 se almacena como SHA-256 y es única por comunidad. El `requestHash` con datos normalizados más SHA-256 del archivo permite repetir exactamente un envío, pero rechaza reutilizar la clave con otro contenido.
+- Referencia normalizada es única por jornada. Los índices también se aplican en la BD para cerrar carreras entre validación e inserción.
+- El registro público modifica `JornadaBombona.pagosRegistrados` y crea el pago bajo una transacción. La actualización condicional de la jornada compite con el cierre y evita registrar un pago en una jornada cerrada.
+- MongoDB transaccional debe operar como replica set o clúster sharded. `server.js` crea explícitamente los índices de Bombonas antes de escuchar.
+- Los limitadores específicos de API pública usan memoria local; requieren store compartido antes de escalar a varias instancias. El honeypot no sustituye CAPTCHA/antibot ni una estrategia contra botnets.
+- Las mutaciones privadas de Bombonas exigen `Authorization: Bearer` aun cuando el resto del API permita fallback a cookie; el frontend conserva el access token en memoria y lo envía en ese header.
+- El modelo `Habitante` agrupa casas por calle y número; la API pública actual solo expone número según el contrato inicial. Si los números se repiten entre calles, la vivienda es ambigua: no integrar hasta decidir si se incluye calle o un ID estable (R-29).
+- Ver contrato completo y riesgos de antivirus, datos de Pago Móvil expuestos y presión de memoria en [`backend_api_guide.md`](./backend_api_guide.md) y [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
 
 ---
 
 ## 7. Validación y saneamiento
 
-- `validate(schema)` reemplaza `req.body` por `result.data`; el servicio recibe datos saneados.
+- `validate(schema)` reemplaza `req.body` por `result.data`; para `query` y `params` guarda los datos saneados en `req.validatedQuery` y `req.validatedParams` (Express expone `req.query` como getter).
 - Los schemas viven en `*.validation.js` por módulo.
 - `emptyToNull` convierte `''` en `null` para campos opcionales/nullables.
 - Cédulas se normalizan a mayúsculas; emails a minúsculas; strings con `trim`.
@@ -266,6 +281,8 @@ Los CRUD actuales afectan un solo documento. Si una operación futura escribe en
 - `accion`: `POST -> CREAR`, `PUT/PATCH -> ACTUALIZAR`, `DELETE -> ELIMINAR`.
 - `resultado`: `EXITOSO` si status 2xx; `FALLIDO` en otro caso.
 - Sanea `password`, `confirmPassword`, `accessToken`, `refreshToken` en el nivel superior del body.
+- Las rutas de Bombonas sustituyen `req.auditBody` para redactar configuración de Pago Móvil y textos libres de revisión/cierre antes de auditoría.
+- El `errorHandler` no imprime body, query, URL completa ni mensajes/stack que pudieran contener PII.
 - Es fire-and-forget: un fallo de auditoría nunca rompe la petición.
 - **Inconsistencia documental:** la guía menciona acciones `LOGIN`/`CERRAR_SESION`, pero el modelo solo admite `CREAR/ACTUALIZAR/ELIMINAR`. No inventes esos valores sin migrar el enum.
 

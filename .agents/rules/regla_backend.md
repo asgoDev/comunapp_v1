@@ -71,6 +71,7 @@ Route -> authenticate/authorize -> validate(Zod) -> Controller -> Service (singl
 | Dashboard | Global | Su comunidad | Su calle |
 | Auditoría | Lectura | — | — |
 | Perfil | Propio | Propio | Propio |
+| Bombonas | Jornadas/pagos globales | Jornadas/pagos de su comunidad | — |
 
 `GET /comunidades`, `/:id` y `/:id/resumen` aplican scoping desde el 2026-11-04 (R-01 resuelto). Un jefe solo accede a su comunidad y el acceso cruzado responde `403`.
 

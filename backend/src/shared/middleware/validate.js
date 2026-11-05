@@ -11,12 +11,19 @@
  *   import { loginSchema } from '../validations/auth.js';
  *   router.post('/login', validate(loginSchema), authController.login);
  */
-const validate = (schema) => (req, _res, next) => {
-    const result = schema.safeParse(req.body);
+const validate = (schema, source = 'body') => (req, _res, next) => {
+    const result = schema.safeParse(req[source]);
     if (!result.success) {
         return next(result.error); // ZodError — lo captura errorHandler
     }
-    req.body = result.data; // datos coercionados y saneados por Zod
+    if (source === 'query') {
+        // Express expone req.query como getter; conservar el resultado parseado aparte.
+        req.validatedQuery = result.data;
+    } else if (source === 'params') {
+        req.validatedParams = result.data;
+    } else {
+        req[source] = result.data; // datos coercionados y saneados por Zod
+    }
     next();
 };
 

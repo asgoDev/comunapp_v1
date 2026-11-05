@@ -21,7 +21,7 @@
 
 **Roles reales:** `admin`, `JEFE_COMUNIDAD`, `LIDER_CALLE`.
 
-**Módulos backend:** `auth`, `users`, `comunidades`, `habitantes`, `dashboard`, `auditoria`, `profile`.
+**Módulos backend:** `auth`, `users`, `comunidades`, `habitantes`, `dashboard`, `auditoria`, `profile`, `bombonas`.
 **Módulos frontend:** Login, Dashboard, Comunidades, Habitantes, Usuarios, Auditoría, Perfil.
 
 ---
@@ -104,6 +104,7 @@
 | Dashboard | Métricas globales | Métricas de su comunidad | Métricas de su calle |
 | Auditoría | Lectura | Sin acceso | Sin acceso |
 | Perfil | Propio | Propio | Propio |
+| Bombonas | Jornadas/pagos globales | Jornadas/pagos de su comunidad | Sin acceso |
 
 `GET /api/comunidades`, `GET /api/comunidades/:id` y `GET /api/comunidades/:id/resumen` aplican scoping desde el 2026-11-04: `JEFE_COMUNIDAD` solo accede a su comunidad; el acceso cruzado responde `403 FORBIDDEN` (R-01 resuelto).
 

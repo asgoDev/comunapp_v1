@@ -37,6 +37,8 @@ const extractResourceId = (req, responseBody) => {
       responseBody.id      ||
       responseBody.user?.id ||
       responseBody.user?._id ||
+      responseBody.jornada?._id ||
+      responseBody.pago?._id ||
       null
     );
   }
@@ -103,7 +105,7 @@ const auditMiddleware = (req, res, next) => {
       ip:         req.ip || req.socket?.remoteAddress || null,
       userAgent:  req.headers['user-agent'] || null,
       detalles: {
-        body:      sanitizeBody(req.body),
+        body:      sanitizeBody(req.auditBody ?? req.body),
         // En respuestas de error el errorHandler envía { success, message, code? }
         // Lo capturamos para poder filtrar por tipo de error en el dashboard
         error: !isSuccess && typeof body === 'object'
