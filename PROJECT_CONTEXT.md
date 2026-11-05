@@ -66,7 +66,7 @@ frontend/src/
 ├── components/ui/        # Avatar, Button, Icon, Input, Logo, Pagination, ViewToggle
 ├── hooks/                # TanStack Query por módulo
 ├── lib/                  # queryClient
-├── pages/                # Login, Dashboard, Comunidades, Habitantes, Usuarios, Auditoría, Perfil
+├── pages/                # Login, Dashboard, Comunidades, Habitantes, Usuarios, Auditoría, Perfil y vistas públicas
 ├── services/             # axios por módulo
 ├── stores/               # authStore, uiStore (y stubs deprecados)
 ├── utils/                # formatters, pdfExport, venezuela.json
@@ -204,6 +204,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 | `/habitantes/carga-masiva` | Carga masiva | `admin` |
 | `/auditoria` | Auditoría | `admin` |
 | `/perfil` | Perfil | Todos |
+| `/publico/pago-bombonas/:comunidadId` | Formulario público de prueba de pagos de bombonas | Público |
 
 `ProtectedRoute` solo valida autenticación; cada página valida el rol.
 
@@ -225,6 +226,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 
 - Módulos funcionales: auth, usuarios, comunidades, habitantes (incluida carga masiva y PDF), dashboard, auditoría y perfil.
 - La estética usa Tailwind con tokens CSS y tres temas.
+- Existe una vista pública frontend de demostración para registrar solicitudes de bombonas. Actualmente usa comunidades, casas y precios mock, calcula el total localmente y no realiza peticiones al backend.
 - Hay deudas de seguridad y documentación registradas en [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md) y resumidas en [`MEMORY.md`](./MEMORY.md). Las principales: CSRF, regex sin escapar y cobertura de tests incompleta. R-01 (scoping de comunidades), R-02 (rotación de refresh) y R-03 (tokens fuera de `localStorage`) quedaron resueltos el 2026-11-04.
 - `README.md` y `backend_api_guide.md` fueron reescritos y sincronizados el 2026-11-04.
 

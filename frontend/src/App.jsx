@@ -19,6 +19,7 @@ import HabitanteFormPage from './pages/Habitantes/HabitanteFormPage';
 import HabitanteDetailPage from './pages/Habitantes/HabitanteDetailPage';
 import HabitantesBulkPage from './pages/Habitantes/HabitantesBulkPage';
 import ProfilePage from './pages/Profile/ProfilePage';
+import PagoBombonasPage from './pages/Publico/PagoBombonasPage';
 
 
 function App() {
@@ -73,6 +74,7 @@ function App() {
 
   return (
     <Routes>
+      <Route path="/publico/pago-bombonas/:comunidadId" element={<PagoBombonasPage />} />
       <Route
         path="/login"
         element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}

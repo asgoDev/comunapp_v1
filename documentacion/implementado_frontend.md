@@ -41,3 +41,18 @@
 - **Cambios:** documentación únicamente. No se modificó código de aplicación.
 - **Verificación:** `pnpm build` en `frontend/`: 496 módulos, 0 errores; warnings preexistentes (chunk 972.50 kB y dynamic import de `authStore`). Enlaces relativos de Markdown: OK.
 - **Riesgos / deudas:** R-21 resuelto. El resto queda abierto en el registro, priorizado por fases.
+
+---
+
+## 2026-11-04 — Formulario público de prueba para pagos de bombonas
+
+- **Objetivo:** crear una vista frontend pública para visualizar y validar el flujo de solicitud de bombonas asociado a una comunidad.
+- **Archivos:** [`frontend/src/pages/Publico/PagoBombonasPage.jsx`](../frontend/src/pages/Publico/PagoBombonasPage.jsx), [`frontend/src/validations/pagoBombonas.js`](../frontend/src/validations/pagoBombonas.js), [`frontend/src/App.jsx`](../frontend/src/App.jsx).
+- **Cambios:**
+  - Se añadió la ruta pública `/publico/pago-bombonas/:comunidadId`, fuera de `ProtectedRoute` y `AppLayout`.
+  - Se incorporaron datos mock de comunidad, casas numéricas y precios referenciales.
+  - Se añadieron selectores de cantidad para bombonas grandes, medianas y pequeñas, con cálculo reactivo del total en VES.
+  - Se agregaron campos obligatorios para casa, propietario, referencia y comprobante de pago.
+  - La confirmación de envío es simulada; no se usa axios, no se persisten datos y no se implementó backend.
+- **Verificación:** `frontend/pnpm build` → 498 módulos, 0 errores; `frontend/pnpm test` → 9/9 pruebas OK. Warnings: chunk principal mayor a 500 kB y Browserslist desactualizado.
+- **Riesgos / deudas:** R-22 a R-26 agregados al registro de riesgos. Antes de conectar backend deben resolverse abuso del flujo público, autoridad del cálculo/precios, seguridad de archivos, exposición de datos comunitarios y bootstrap de autenticación global.

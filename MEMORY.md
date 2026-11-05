@@ -26,7 +26,7 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 - **Comunidades:** CRUD admin, soft delete, resumen, validación de duplicados; lectura con scoping para `JEFE_COMUNIDAD` (R-01 resuelto).
 - **Habitantes:** CRUD con scoping por comunidad/calle, unicidad de cédula por comunidad, carga masiva admin (máx. 500; 207 parcial), vistas casas/listado y export PDF.
 - **Dashboard:** métricas por rol. **Auditoría:** logs de escritura (solo admin). **Perfil:** datos propios y cambio de contraseña.
-- **Frontend:** temas por variables CSS (`default`, `emerald`, `matrix`), layout responsive, TanStack Query, RHF+Zod, toasts y export PDF. Auth sin persistencia: access en memoria, refresh por cookie y bootstrap con fallback a login en iOS cross-site.
+- **Frontend:** temas por variables CSS (`default`, `emerald`, `matrix`), layout responsive, TanStack Query, RHF+Zod, toasts y export PDF. Auth sin persistencia: access en memoria, refresh por cookie y bootstrap con fallback a login en iOS cross-site. Se añadió vista pública mock `/publico/pago-bombonas/:comunidadId`, sin backend ni persistencia.
 - **Pruebas:** backend 21/21 (`pnpm test`); frontend 9/9 (`pnpm test` con Vite SSR). Faltan lint y cobertura amplia.
 
 ## Decisiones vigentes
@@ -58,6 +58,11 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 - **R-10 (P2, contrato):** `/auth/login` devuelve `id`; `/auth/me` y los CRUD devuelven `_id`.
 - **R-11 a R-20:** contrato de auditoría, límites de paginación, modelo implícito, código muerto, configuración, idempotencia, errores de campo, sanitización anidada, revocación al cambiar contraseña y duplicados de comunidad. Ver registro.
 - **R-21 (documentación):** resuelto el 2026-11-04.
+- **R-22 (P1):** el futuro formulario público de bombonas requiere antiabuso, rate limiting, idempotencia, validación server-side y auditoría.
+- **R-23 (P1):** precios y total no pueden confiarse al cliente; el backend debe recalcular y custodiar tarifas/importes.
+- **R-24 (P1):** comprobantes requieren validación binaria, límites, escaneo, almacenamiento y retención seguros en backend.
+- **R-25 (P2):** definir la mínima información comunitaria/casas que puede exponerse públicamente y evitar enumeración innecesaria.
+- **R-26 (P2):** el bootstrap global de auth bloquea inicialmente la vista pública; separar o hacer no bloqueante antes de producción.
 
 ## Próximos pasos recomendados
 
@@ -65,6 +70,7 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 2. Remediar P1: **R-04**, **R-05**, **R-06**, **R-07** y **R-08**.
 3. Ampliar la suite de pruebas y añadir lint; paginación server-side (**R-09**, **R-12**).
 4. Resolver P2/P3 restantes según [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
+5. Diseñar el contrato backend del flujo público de bombonas y resolver R-22 a R-26 antes de conectar el formulario.
 
 ## Referencias
 
