@@ -21,7 +21,6 @@ class AuthController {
                 message: 'Inicio de sesión exitoso',
                 user: result.user,
                 accessToken: result.accessToken,
-                refreshToken: result.refreshToken,
             });
         } catch (error) {
             if (error.userId) req.auditUserId = error.userId;
@@ -34,7 +33,9 @@ class AuthController {
      */
     async refresh(req, res, next) {
         try {
-            const token = req.cookies?.refreshToken || req.body?.refreshToken;
+            // El refresh solo se acepta por cookie HttpOnly. Ignorar el body
+            // impide reabrir un canal donde JavaScript pueda leer o enviar el token.
+            const token = req.cookies?.refreshToken;
             const result = await authService.refresh(token);
 
             setTokenCookies(res, result.accessToken, result.refreshToken);
@@ -42,7 +43,6 @@ class AuthController {
             res.json({
                 message: 'Token renovado exitosamente',
                 accessToken: result.accessToken,
-                refreshToken: result.refreshToken,
             });
         } catch (error) {
             clearTokenCookies(res);
@@ -55,7 +55,7 @@ class AuthController {
      */
     async logout(req, res, next) {
         try {
-            const token = req.cookies?.refreshToken || req.body?.refreshToken;
+            const token = req.cookies?.refreshToken;
             if (token) await authService.invalidateRefreshToken(token);
         } catch (error) {
             // No bloquear el logout si falla la invalidación; loguear y continuar

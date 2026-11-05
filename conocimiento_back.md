@@ -92,9 +92,10 @@ Se lanzan con `new AppError(message, statusCode, code)` y los captura [`errorHan
 - Si el identificador parece cédula, normaliza a mayúsculas; si es email, a minúsculas.
 - **Timing-safe:** si el usuario no existe, igual ejecuta `bcrypt.compare` contra un hash dummy para evitar enumeración por tiempo.
 - Usuario `inactivo` responde `403 ACCOUNT_DISABLED` antes de validar la contraseña.
-- Respuesta: `{ message, user, accessToken, refreshToken }`.
+- Respuesta: `{ message, user, accessToken }`. El `refreshToken` no se expone en JSON (R-03).
 - `user` incluye `id`, `nombre`, `apellido`, `email`, `role`, `comunidad` (populada con `nombre`) y `calle`.
-- Los tokens también se escriben en cookies `httpOnly` (`accessToken`, `refreshToken`) y `sessionExpiry` (legible por JS).
+- Los tokens se escriben solo en cookies `httpOnly` (`accessToken`, `refreshToken`). Ya no existe `sessionExpiry`.
+- El access token se devuelve en el body para clientes que lo usan en `Authorization` (incluido el fallback de iOS); el frontend debe mantenerlo únicamente en memoria.
 
 ### 4.2 JWT y cookies
 
@@ -107,12 +108,12 @@ Se lanzan con `new AppError(message, statusCode, code)` y los captura [`errorHan
 
 ### 4.3 Refresh y logout
 
-- `POST /auth/refresh` acepta el token desde cookie o body.
+- `POST /auth/refresh` acepta el token solo desde la cookie `HttpOnly`; el body se ignora.
 - Verifica firma/expiración, relee al usuario y consume el refresh presentado antes de emitir el nuevo par.
 - El consumo inserta el hash SHA-256 en `TokenBlacklist`; el índice único hace la operación atómica. Un duplicado (`11000`) es reuso o carrera y responde `401 REVOKED_REFRESH_TOKEN` sin emitir credenciales.
 - Cada refresh se firma con un `jti` aleatorio (`crypto.randomUUID()`); sin él, dos emisiones en el mismo segundo podrían ser idénticas y la rotación invalidaría el token recién creado.
 - La detección de reuso rechaza el token antiguo, pero no revoca una familia completa de sesiones. R-02 resuelto el 2026-11-04.
-- `POST /auth/logout` guarda el hash del refresh en `TokenBlacklist` y limpia cookies. Es idempotente ante fallos de invalidación (no bloquea el logout).
+- `POST /auth/logout` toma el refresh solo de la cookie, guarda su hash en `TokenBlacklist` y limpia cookies. Es idempotente ante fallos de invalidación y ante la ausencia de cookie.
 - `TokenBlacklist` tiene TTL de 8 h (28800 s), alineado con el refresh por defecto. **Restricción operativa:** si `JWT_REFRESH_EXPIRES` se configura por encima de 8 h, el registro puede expirar antes que el JWT; no desplegar esa combinación sin ajustar el índice TTL.
 
 ### 4.4 `/auth/me`
@@ -329,7 +330,7 @@ Variables de entorno usadas por el backend (solo nombres): `PORT`, `NODE_ENV`, `
 5. **`seed.js`** asigna `cargo`, campo que no existe en `User`. R-15.
 6. **`dashboard.service.js`** usa `mongoose.model('Habitante')` en vez de importar el modelo. R-13.
 7. **`ComunidadService.delete`** responde `404` si la comunidad ya está inactiva (no es idempotente con 409). No cambies el contrato sin aprobación. R-16.
-8. **`auth.controller.login`** devuelve `refreshToken` en el body además de la cookie; necesario para iOS, pero aumenta la superficie de exposición. R-03.
+8. **Frontend pendiente de R-03:** el backend ya no devuelve ni acepta `refreshToken` por body; el frontend debe migrar a access en memoria antes de desplegar este contrato.
 9. **Saneamiento de auditoría** solo cubre el nivel superior del body; un objeto anidado con `password` no se sanea. R-18.
 10. **Los listados no imponen un límite máximo** (excepto auditoría, 100). Un `limit` alto puede degradar el rendimiento. R-12.
 11. **Documentación base:** `backend_api_guide.md` y `README.md` fueron reescritos y sincronizados el 2026-11-04. Resuelto (R-21).

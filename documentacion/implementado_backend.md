@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-11-04 — R-03 backend: contrato cookie-only
+
+- **Objetivo:** eliminar el refresh token de las respuestas JSON y del canal body; dejar la cookie `HttpOnly` como único transporte.
+- **Archivos:** `auth.controller.js`, `jwt.utils.js`, `backend/test/auth.controller.test.js`.
+- **Cambios:**
+  - Login devuelve `{ message, user, accessToken }`; el refresh solo se escribe en cookie.
+  - Refresh y logout leen exclusivamente `req.cookies.refreshToken`; ignoran el body.
+  - Se elimina la cookie legible `sessionExpiry`.
+  - Se mantiene `SameSite=None; Secure` en producción por despliegue cross-site y fallback de iOS.
+- **Verificación:** `node --check`; `pnpm test` → 21/21 pruebas OK (5 nuevas de contrato).
+- **Riesgo / bloqueo:** no desplegar este backend con el frontend anterior. R-03 sigue abierto hasta completar el frontend y probar iOS.
+
+---
+
 ## 2026-11-04 — R-02: rotación atómica del refresh token
 
 - **Objetivo:** invalidar el refresh presentado al rotarlo y detectar reuso o concurrencia.

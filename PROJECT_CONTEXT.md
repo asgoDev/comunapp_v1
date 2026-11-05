@@ -160,8 +160,9 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 
 1. El usuario envía `identifier` (email/cédula) y `password`.
 2. El backend valida con Zod, busca al usuario, compara con bcrypt (timing-safe) y rechaza inactivos.
-3. Emite access + refresh tokens, los guarda en cookies `httpOnly` y los devuelve en el body. Al renovar, el refresh presentado se consume atómicamente antes de emitir el nuevo par.
-4. El frontend guarda tokens en Zustand y los inyecta en `Authorization`.
+3. Emite access + refresh tokens. Ambos se escriben en cookies `httpOnly`; solo el access se devuelve en el body. El refresh nunca sale en JSON.
+4. El frontend mantiene el access en memoria y lo inyecta en `Authorization`; el refresh se envía exclusivamente por cookie.
+5. Al renovar, el refresh presentado se consume atómicamente antes de emitir el nuevo par.
 
 ### Scoping de habitantes
 

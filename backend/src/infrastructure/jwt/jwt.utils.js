@@ -53,15 +53,6 @@ export const setTokenCookies = (res, accessToken, refreshToken) => {
         ...cookieBase,
         maxAge: parseMs(REFRESH_EXPIRES),
     });
-
-    // Cookie legible desde JS para que el frontend sepa cuándo expira la sesión
-    res.cookie('sessionExpiry', (Date.now() + parseMs(REFRESH_EXPIRES)).toString(), {
-        httpOnly: false,
-        secure: isProduction,
-        sameSite: isProduction ? 'none' : 'lax',
-        maxAge: parseMs(REFRESH_EXPIRES),
-        path: '/',
-    });
 };
 
 export const clearTokenCookies = (res) => {
@@ -73,7 +64,6 @@ export const clearTokenCookies = (res) => {
         path: '/',
     };
 
-    res.clearCookie('accessToken',   { ...clearOpts });
-    res.clearCookie('refreshToken',  { ...clearOpts });
-    res.clearCookie('sessionExpiry', { ...clearOpts, httpOnly: false });
+    res.clearCookie('accessToken',  { ...clearOpts });
+    res.clearCookie('refreshToken', { ...clearOpts });
 };

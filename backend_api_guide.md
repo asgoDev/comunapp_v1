@@ -31,7 +31,8 @@ El login también establece cookies `httpOnly`:
 
 - `accessToken`
 - `refreshToken`
-- `sessionExpiry` (legible por JS)
+
+El refresh token **nunca** se devuelve en el JSON. La cookie es el único canal para enviarlo.
 
 ### 1.2 Roles
 
@@ -100,10 +101,11 @@ Público. Sujeto a rate limit estricto.
     "comunidad": { "_id": "64f0c2...", "nombre": "Comunidad Ejemplo" },
     "calle": "Calle 1"
   },
-  "accessToken": "eyJhbG...",
-  "refreshToken": "eyJhbG..."
+  "accessToken": "eyJhbG..."
 }
 ```
+
+> El `refreshToken` se entrega únicamente en la cookie `HttpOnly`; no aparece en la respuesta JSON.
 
 **Errores**
 
@@ -118,29 +120,26 @@ Público. Sujeto a rate limit estricto.
 
 ### 3.2 `POST /auth/refresh`
 
-Público. Renueva el par de tokens. Acepta el refresh token por cookie o por body. El token presentado se consume atómicamente antes de emitir el nuevo par; reutilizarlo o intentar dos rotaciones concurrentes responde `401 REVOKED_REFRESH_TOKEN`.
+Público. Renueva el par de tokens usando **exclusivamente** la cookie `refreshToken`. No acepta el token en el body. El token presentado se consume atómicamente antes de emitir el nuevo par; reutilizarlo o intentar dos rotaciones concurrentes responde `401 REVOKED_REFRESH_TOKEN`.
 
-**Body**
-
-| Campo | Tipo | Requerido | Reglas |
-|---|---|---|---|
-| `refreshToken` | string | No* | Obligatorio si no llega la cookie `refreshToken` |
+**Body:** vacío. Cualquier `refreshToken` enviado en JSON se ignora.
 
 **Respuesta 200**
 
 ```json
 {
   "message": "Token renovado exitosamente",
-  "accessToken": "eyJhbG...",
-  "refreshToken": "eyJhbG..."
+  "accessToken": "eyJhbG..."
 }
 ```
+
+> El nuevo `refreshToken` solo se entrega mediante `Set-Cookie`.
 
 **Errores**
 
 | Status | `code` | Causa |
 |---|---|---|
-| 401 | `MISSING_REFRESH_TOKEN` | No se envió token |
+| 401 | `MISSING_REFRESH_TOKEN` | No llegó la cookie `refreshToken` |
 | 401 | `REVOKED_REFRESH_TOKEN` | Token en blacklist |
 | 401 | `INVALID_REFRESH_TOKEN` | Token inválido o expirado |
 | 401 | `USER_UNAVAILABLE` | Usuario inexistente o inactivo |
@@ -151,13 +150,9 @@ Público. Renueva el par de tokens. Acepta el refresh token por cookie o por bod
 
 ### 3.3 `POST /auth/logout`
 
-Público. Invalida el refresh token y limpia cookies.
+Público. Invalida el refresh token de la cookie y limpia las cookies de sesión.
 
-**Body**
-
-| Campo | Tipo | Requerido | Reglas |
-|---|---|---|---|
-| `refreshToken` | string | No* | Obligatorio si no llega la cookie `refreshToken` |
+**Body:** vacío. Cualquier `refreshToken` enviado en JSON se ignora.
 
 **Respuesta 200**
 

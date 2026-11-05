@@ -21,7 +21,7 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 
 ## Estado actual (2026-11-04)
 
-- **Auth:** login por email/cédula, refresh con rotación atómica y `jti`, logout con blacklist, `/me`, cookies `httpOnly` + tokens en body, rate limiting.
+- **Auth:** login por email/cédula, refresh con rotación atómica y `jti`, logout con blacklist, `/me`, cookies `httpOnly` + access token en body, rate limiting. El refresh solo viaja por cookie (backend R-03 listo; frontend pendiente).
 - **Usuarios:** CRUD con scoping para `JEFE_COMUNIDAD` (solo `LIDER_CALLE` de su comunidad), soft delete, cédula inmutable.
 - **Comunidades:** CRUD admin, soft delete, resumen, validación de duplicados; lectura con scoping para `JEFE_COMUNIDAD` (R-01 resuelto).
 - **Habitantes:** CRUD con scoping por comunidad/calle, unicidad de cédula por comunidad, carga masiva admin (máx. 500; 207 parcial), vistas casas/listado y export PDF.
@@ -45,7 +45,7 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 
 - **R-01 (P0, seguridad):** resuelto el 2026-11-04. `JEFE_COMUNIDAD` solo lista/lee su comunidad; acceso cruzado → `403`; resumen valida antes de contar.
 - **R-02 (P0, seguridad):** resuelto el 2026-11-04. El refresh presentado se consume atómicamente y se rechaza su reuso/concurrencia; cada refresh lleva `jti` único.
-- **R-03 (P0, seguridad):** tokens persistidos en `localStorage` y refresh devuelto en el body.
+- **R-03 (P0, seguridad):** en curso. Backend ya es cookie-only y no expone refresh en JSON; falta migrar el frontend y desplegar ambos juntos.
 - **R-04 (P1, seguridad):** `$regex` construido con entrada del usuario en comunidades/habitantes.
 - **R-05 (P1, integridad):** cédula de habitante sin índice único compuesto; riesgo de carrera.
 - **R-06 (P1, seguridad):** CSRF con cookies `sameSite: 'none'` y fallback de cookie.
@@ -58,7 +58,7 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 
 ## Próximos pasos recomendados
 
-1. Remediar P0 pendiente: **R-03** (auth backend/frontend), en sprints coordinados.
+1. Completar **R-03** en frontend y desplegar backend+frontend en la misma ventana. **No desplegar el backend actual con el frontend anterior.**
 2. Remediar P1: **R-04**, **R-05**, **R-06**, **R-07** y **R-08**.
 3. Ampliar la suite de pruebas (Vitest/RTL para frontend, lint) y añadir paginación server-side (**R-09**, **R-12**).
 4. Resolver P2/P3 restantes según [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
