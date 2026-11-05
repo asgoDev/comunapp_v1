@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-11-04 — R-02: rotación atómica del refresh token
+
+- **Objetivo:** invalidar el refresh presentado al rotarlo y detectar reuso o concurrencia.
+- **Archivos:** `auth.service.js`, `jwt.utils.js`, `backend/test/auth.service.test.js`.
+- **Cambios:**
+  - Cada refresh se firma con un `jti` aleatorio.
+  - El hash SHA-256 del token presentado se inserta en `TokenBlacklist` antes de emitir el nuevo par.
+  - La restricción única de `tokenHash` convierte el consumo en una operación atómica; un duplicado responde `401 REVOKED_REFRESH_TOKEN`.
+  - Logout conserva su comportamiento idempotente.
+- **Verificación:** `node --check`; `pnpm test` → 16/16 pruebas OK (6 nuevas de auth).
+- **Riesgo operativo documentado:** el TTL fijo de la blacklist es 8 h; no configurar un refresh más longevo sin ajustar el índice.
+- **Riesgos:** R-02 resuelto. R-03 sigue abierto.
+
+---
+
 ## 2026-11-04 — R-01: scoping de Comunidades
 
 - **Objetivo:** impedir que `JEFE_COMUNIDAD` liste, lea o consulte conteos de comunidades ajenas.

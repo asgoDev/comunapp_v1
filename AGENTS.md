@@ -129,7 +129,7 @@
 - Contraseñas con bcrypt (12 rondas), `select: false` y eliminación en `toJSON`.
 - JWT: `{ id, role }`; access 15 min, refresh 8 h (configurables por entorno).
 - Refresh tokens revocados se guardan como hash SHA-256 en `TokenBlacklist` con TTL.
-- **Deuda de seguridad:** el refresh actual no invalida el token presentado al rotarlo. Ver `MEMORY.md`.
+- El refresh rota de forma atómica: el token presentado se invalida en `TokenBlacklist` antes de emitir el nuevo par y cada refresh incluye un `jti` único (R-02 resuelto).
 - **Deuda de seguridad:** el frontend persiste tokens en `localStorage`. No empeorar este patrón; evaluar migración a cookies `httpOnly` + memoria.
 
 ### 3.5 Validación y errores

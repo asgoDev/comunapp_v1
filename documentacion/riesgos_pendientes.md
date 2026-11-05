@@ -2,7 +2,7 @@
 
 > **Backlog de remediación.** Cada riesgo detectado en el escaneo del 2026-11-04 tiene un ID estable, prioridad, ubicación, impacto y remediación propuesta. Al resolverlo, actualizar su estado y registrar la evidencia en [`documentacion/implementado_backend.md`](./implementado_backend.md) o [`documentacion/implementado_frontend.md`](./implementado_frontend.md).
 >
-> **Estado:** 2026-11-04 · R-01 y R-21 resueltos; el resto abierto.
+> **Estado:** 2026-11-04 · R-01, R-02 y R-21 resueltos; el resto abierto.
 
 ## Escala
 
@@ -20,7 +20,7 @@
 | ID | Prioridad | Área | Riesgo y ubicación | Impacto | Remediación propuesta | Estado |
 |---|---|---|---|---|---|---|
 | **R-01** | P0 | Seguridad / scoping | `GET /comunidades`, `GET /comunidades/:id` y `/:id/resumen` no filtraban por la comunidad del `JEFE_COMUNIDAD` (`comunidad.service.js`, `comunidad.controller.js`). | Un jefe podía leer comunidades y conteos ajenos (exposición cruzada). | Servicio recibe el usuario autenticado, relee la BD, filtra `find` y `countDocuments`, responde `403` en acceso cruzado y valida antes de contar. | **Resuelto** (2026-11-04; 10 pruebas en `backend/test/comunidad.service.test.js`) |
-| **R-02** | P0 | Seguridad / auth | `auth.service.refresh` emite tokens nuevos sin invalidar el refresh presentado. | Un refresh robado sigue válido hasta 8 h; no hay detección de reuso. | Guardar el hash del refresh usado en `TokenBlacklist` antes/después de emitir el nuevo; detectar reuso; tests de refresh. | Abierto |
+| **R-02** | P0 | Seguridad / auth | `auth.service.refresh` emitía tokens nuevos sin invalidar el refresh presentado. | Un refresh robado seguía válido hasta 8 h; no había detección de reuso. | Hash del refresh en `TokenBlacklist` antes de emitir, índice único como consumo atómico, `jti` único por refresh y pruebas de reuso/concurrencia. | **Resuelto** (2026-11-04; 6 pruebas en `backend/test/auth.service.test.js`) |
 | **R-03** | P0 | Seguridad / frontend | `authStore` persiste `accessToken` y `refreshToken` en `localStorage`; el login también devuelve el refresh en el body. | Robo de sesión por XSS; exposición del refresh a JS. | Migrar a cookie `httpOnly` + access token en memoria; dejar de persistir tokens; ajustar el flujo iOS; tests de auth. | Abierto |
 | **R-04** | P1 | Seguridad / backend | `ComunidadService.existsByName` y `HabitanteService.getAll({ search })` construyen `$regex` con entrada del usuario. | ReDoS, falsos matches y comportamiento inesperado. | Escapar caracteres regex (`escapeRegex`) o usar búsqueda normalizada/`$text`; limitar longitud; tests con caracteres especiales. | Abierto |
 | **R-05** | P1 | Integridad / habitantes | La unicidad de cédula de habitante se valida solo en servicio; no hay índice único compuesto `{ comunidad, cedula }`. | Duplicados por condiciones de carrera. | Crear índice único parcial (`partialFilterExpression` para cédula string); manejar `11000`; test de concurrencia. | Abierto |

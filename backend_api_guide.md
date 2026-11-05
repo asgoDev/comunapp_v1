@@ -118,7 +118,7 @@ Público. Sujeto a rate limit estricto.
 
 ### 3.2 `POST /auth/refresh`
 
-Público. Renueva el par de tokens. Acepta el refresh token por cookie o por body.
+Público. Renueva el par de tokens. Acepta el refresh token por cookie o por body. El token presentado se consume atómicamente antes de emitir el nuevo par; reutilizarlo o intentar dos rotaciones concurrentes responde `401 REVOKED_REFRESH_TOKEN`.
 
 **Body**
 
@@ -145,7 +145,7 @@ Público. Renueva el par de tokens. Acepta el refresh token por cookie o por bod
 | 401 | `INVALID_REFRESH_TOKEN` | Token inválido o expirado |
 | 401 | `USER_UNAVAILABLE` | Usuario inexistente o inactivo |
 
-> **Riesgo conocido R-02:** el refresh actual no invalida el token presentado al rotarlo. Un refresh robado sigue válido hasta su expiración (8 h por defecto).
+> **Rotación (R-02 resuelto):** cada refresh incluye un `jti` único y el anterior se guarda como hash SHA-256 en `TokenBlacklist` antes de emitir el nuevo par. La restricción única de `tokenHash` resuelve carreras entre peticiones concurrentes.
 
 ---
 

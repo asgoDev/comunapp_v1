@@ -122,7 +122,7 @@ Route -> authenticate/authorize -> validate(Zod) -> Controller -> Service (singl
 - JWT payload mínimo: `{ id, role }`.
 - Access 15 min / refresh 8 h (configurables).
 - Cookies `httpOnly`; `secure` y `sameSite: 'none'` en producción.
-- Revocación de refresh con hash SHA-256 en `TokenBlacklist`.
+- Revocación de refresh con hash SHA-256 en `TokenBlacklist`; la rotación consume el token anterior de forma atómica y cada refresh lleva `jti` único.
 - No desactives `helmet`, CORS con credenciales, rate limiting, `express-mongo-sanitize` ni la validación.
 - No loguees passwords, tokens, cookies, PII ni contenido de `.env`.
 - No añadas secretos al código; usa `.env` y actualiza `.env.example` con placeholders.

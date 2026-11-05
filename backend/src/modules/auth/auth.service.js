@@ -1,4 +1,6 @@
+import { createHash } from 'node:crypto';
 import User from '../users/user.model.js';
+import TokenBlacklist from './auth.model.js';
 import AppError from '../../shared/errors/AppError.js';
 import {
     generateAccessToken,
@@ -71,20 +73,38 @@ class AuthService {
     }
 
     /**
+     * Consume un refresh token de forma atómica.
+     * El índice único de tokenHash garantiza que dos peticiones concurrentes
+     * con el mismo token no puedan rotarlo ambas.
+     *
+     * @param {string} token
+     */
+    async _consumeRefreshToken(token) {
+        const hash = createHash('sha256').update(token).digest('hex');
+
+        try {
+            await TokenBlacklist.create({ tokenHash: hash });
+        } catch (error) {
+            if (error.code === 11000) {
+                throw new AppError(
+                    'El token de sesión ha sido revocado.',
+                    401,
+                    'REVOKED_REFRESH_TOKEN'
+                );
+            }
+            throw error;
+        }
+    }
+
+    /**
      * Renueva el AccessToken usando el RefreshToken.
+     *
+     * La rotación es estricta: el token presentado se invalida antes de emitir
+     * el nuevo par. Si el consumo falla, no se entregan tokens nuevos.
      */
     async refresh(token) {
         if (!token) {
             throw new AppError('No se proporcionó refresh token.', 401, 'MISSING_REFRESH_TOKEN');
-        }
-
-        const { createHash } = await import('crypto');
-        const { default: TokenBlacklist } = await import('./auth.model.js');
-        const hash = createHash('sha256').update(token).digest('hex');
-        const isBlacklisted = await TokenBlacklist.exists({ tokenHash: hash });
-        
-        if (isBlacklisted) {
-            throw new AppError('El token de sesión ha sido revocado.', 401, 'REVOKED_REFRESH_TOKEN');
         }
 
         let decoded;
@@ -100,6 +120,10 @@ class AuthService {
         if (!user || user.estado === 'inactivo') {
             throw new AppError('Usuario no encontrado o desactivado.', 401, 'USER_UNAVAILABLE');
         }
+
+        // Consumir el token antes de emitir los nuevos. Un duplicado (11000)
+        // significa reuso o una carrera: se rechaza sin emitir credenciales.
+        await this._consumeRefreshToken(token);
 
         const tokenPayload = { id: user._id, role: user.role };
         return {
@@ -127,8 +151,6 @@ class AuthService {
      * Requiere el modelo TokenBlacklist con TTL index.
      */
     async invalidateRefreshToken(token) {
-        const { createHash } = await import('crypto');
-        const { default: TokenBlacklist } = await import('./auth.model.js');
         const hash = createHash('sha256').update(token).digest('hex');
         try {
             await TokenBlacklist.create({ tokenHash: hash });

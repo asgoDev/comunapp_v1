@@ -108,11 +108,12 @@ Se lanzan con `new AppError(message, statusCode, code)` y los captura [`errorHan
 ### 4.3 Refresh y logout
 
 - `POST /auth/refresh` acepta el token desde cookie o body.
-- Antes de verificar, consulta `TokenBlacklist` por hash SHA-256.
-- Emite un nuevo par de tokens.
-- **Deuda crítica:** no invalida el refresh token presentado. Un token robado sigue siendo válido hasta su expiración. La rotación con blacklist del anterior es una mejora pendiente.
+- Verifica firma/expiración, relee al usuario y consume el refresh presentado antes de emitir el nuevo par.
+- El consumo inserta el hash SHA-256 en `TokenBlacklist`; el índice único hace la operación atómica. Un duplicado (`11000`) es reuso o carrera y responde `401 REVOKED_REFRESH_TOKEN` sin emitir credenciales.
+- Cada refresh se firma con un `jti` aleatorio (`crypto.randomUUID()`); sin él, dos emisiones en el mismo segundo podrían ser idénticas y la rotación invalidaría el token recién creado.
+- La detección de reuso rechaza el token antiguo, pero no revoca una familia completa de sesiones. R-02 resuelto el 2026-11-04.
 - `POST /auth/logout` guarda el hash del refresh en `TokenBlacklist` y limpia cookies. Es idempotente ante fallos de invalidación (no bloquea el logout).
-- `TokenBlacklist` tiene TTL de 8 h (28800 s), alineado con el refresh por defecto.
+- `TokenBlacklist` tiene TTL de 8 h (28800 s), alineado con el refresh por defecto. **Restricción operativa:** si `JWT_REFRESH_EXPIRES` se configura por encima de 8 h, el registro puede expirar antes que el JWT; no desplegar esa combinación sin ajustar el índice TTL.
 
 ### 4.4 `/auth/me`
 
@@ -321,18 +322,17 @@ Variables de entorno usadas por el backend (solo nombres): `PORT`, `NODE_ENV`, `
 
 > Registro priorizado, impacto y plan de remediación: [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
 
-1. **Rotación de refresh token incompleta** (ver §4.3). R-02.
-3. **Tokens en `localStorage`** en el frontend; el backend también devuelve tokens en el body. R-03.
-4. **Regex sin escapar** en búsquedas y validación de duplicados. R-04.
-5. **Cédula de habitante sin índice único compuesto**; riesgo de duplicados concurrentes. R-05.
-6. **Sin tests automatizados** ni scripts `test`/lint. R-08.
-7. **`seed.js`** asigna `cargo`, campo que no existe en `User`. R-15.
-8. **`dashboard.service.js`** usa `mongoose.model('Habitante')` en vez de importar el modelo. R-13.
-9. **`ComunidadService.delete`** responde `404` si la comunidad ya está inactiva (no es idempotente con 409). No cambies el contrato sin aprobación. R-16.
-10. **`auth.controller.login`** devuelve `refreshToken` en el body además de la cookie; necesario para iOS, pero aumenta la superficie de exposición. R-03.
-11. **Saneamiento de auditoría** solo cubre el nivel superior del body; un objeto anidado con `password` no se sanea. R-18.
-12. **Los listados no imponen un límite máximo** (excepto auditoría, 100). Un `limit` alto puede degradar el rendimiento. R-12.
-13. **Documentación base:** `backend_api_guide.md` y `README.md` fueron reescritos y sincronizados el 2026-11-04. Resuelto (R-21).
+1. **Tokens en `localStorage`** en el frontend; el backend también devuelve tokens en el body. R-03.
+2. **Regex sin escapar** en búsquedas y validación de duplicados. R-04.
+3. **Cédula de habitante sin índice único compuesto**; riesgo de duplicados concurrentes. R-05.
+4. **Cobertura de tests incompleta**; existe `pnpm test` con `node:test`, pero no hay lint ni suite frontend. R-08.
+5. **`seed.js`** asigna `cargo`, campo que no existe en `User`. R-15.
+6. **`dashboard.service.js`** usa `mongoose.model('Habitante')` en vez de importar el modelo. R-13.
+7. **`ComunidadService.delete`** responde `404` si la comunidad ya está inactiva (no es idempotente con 409). No cambies el contrato sin aprobación. R-16.
+8. **`auth.controller.login`** devuelve `refreshToken` en el body además de la cookie; necesario para iOS, pero aumenta la superficie de exposición. R-03.
+9. **Saneamiento de auditoría** solo cubre el nivel superior del body; un objeto anidado con `password` no se sanea. R-18.
+10. **Los listados no imponen un límite máximo** (excepto auditoría, 100). Un `limit` alto puede degradar el rendimiento. R-12.
+11. **Documentación base:** `backend_api_guide.md` y `README.md` fueron reescritos y sincronizados el 2026-11-04. Resuelto (R-21).
 
 ---
 

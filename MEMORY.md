@@ -21,7 +21,7 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 
 ## Estado actual (2026-11-04)
 
-- **Auth:** login por email/cédula, refresh, logout con blacklist, `/me`, cookies `httpOnly` + tokens en body, rate limiting.
+- **Auth:** login por email/cédula, refresh con rotación atómica y `jti`, logout con blacklist, `/me`, cookies `httpOnly` + tokens en body, rate limiting.
 - **Usuarios:** CRUD con scoping para `JEFE_COMUNIDAD` (solo `LIDER_CALLE` de su comunidad), soft delete, cédula inmutable.
 - **Comunidades:** CRUD admin, soft delete, resumen, validación de duplicados; lectura con scoping para `JEFE_COMUNIDAD` (R-01 resuelto).
 - **Habitantes:** CRUD con scoping por comunidad/calle, unicidad de cédula por comunidad, carga masiva admin (máx. 500; 207 parcial), vistas casas/listado y export PDF.
@@ -36,6 +36,7 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 - Cédula de usuario inmutable; cédula de habitante opcional y única por comunidad (validación de servicio).
 - Listas: `{ <colección>, pagination }`; mutaciones: `{ message, <entidad> }`; errores: `{ success: false, message, code? }`.
 - Auditoría global en `POST/PUT/PATCH/DELETE`; body saneado; fire-and-forget.
+- Rotación de refresh con `jti` único y consumo atómico en `TokenBlacklist`; el TTL fijo de 8 h exige que `JWT_REFRESH_EXPIRES` no sea mayor.
 - `backend_api_guide.md` y `README.md` fueron reescritos y sincronizados el 2026-11-04; la verdad sigue siendo el código.
 
 ## Riesgos y deudas conocidas
@@ -43,13 +44,13 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 > Registro completo con impacto, remediación y plan por fases: [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
 
 - **R-01 (P0, seguridad):** resuelto el 2026-11-04. `JEFE_COMUNIDAD` solo lista/lee su comunidad; acceso cruzado → `403`; resumen valida antes de contar.
-- **R-02 (P0, seguridad):** el refresh token no se invalida al rotarlo.
+- **R-02 (P0, seguridad):** resuelto el 2026-11-04. El refresh presentado se consume atómicamente y se rechaza su reuso/concurrencia; cada refresh lleva `jti` único.
 - **R-03 (P0, seguridad):** tokens persistidos en `localStorage` y refresh devuelto en el body.
 - **R-04 (P1, seguridad):** `$regex` construido con entrada del usuario en comunidades/habitantes.
 - **R-05 (P1, integridad):** cédula de habitante sin índice único compuesto; riesgo de carrera.
 - **R-06 (P1, seguridad):** CSRF con cookies `sameSite: 'none'` y fallback de cookie.
 - **R-07 (P1, seguridad/UX):** guardas de rol duplicadas; `ProtectedRoute` solo valida autenticación.
-- **R-08 (P1, calidad):** sin tests ni scripts `test`/lint.
+- **R-08 (P1, calidad):** backend con `pnpm test` (16 pruebas); faltan lint, suite frontend y cobertura más amplia.
 - **R-09 (P2, rendimiento):** `HabitantesPage` usa `limit=9999` y pagina en cliente.
 - **R-10 (P2, contrato):** `/auth/login` devuelve `id`; `/auth/me` y los CRUD devuelven `_id`.
 - **R-11 a R-20:** contrato de auditoría, límites de paginación, modelo implícito, código muerto, configuración, idempotencia, errores de campo, sanitización anidada, revocación al cambiar contraseña y duplicados de comunidad. Ver registro.
@@ -57,7 +58,7 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 
 ## Próximos pasos recomendados
 
-1. Remediar P0 pendientes: **R-02** (auth backend) y **R-03** (auth backend/frontend), en sprints separados.
+1. Remediar P0 pendiente: **R-03** (auth backend/frontend), en sprints coordinados.
 2. Remediar P1: **R-04**, **R-05**, **R-06**, **R-07** y **R-08**.
 3. Ampliar la suite de pruebas (Vitest/RTL para frontend, lint) y añadir paginación server-side (**R-09**, **R-12**).
 4. Resolver P2/P3 restantes según [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).

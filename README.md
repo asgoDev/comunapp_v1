@@ -148,7 +148,7 @@ frontend/
 
 - Módulos funcionales: autenticación, usuarios, comunidades, habitantes (incluida carga masiva y PDF), dashboard, auditoría y perfil.
 - La documentación base fue consolidada el **2026-11-04**.
-- Pendientes principales: scoping de comunidades, rotación de refresh tokens, migración de tokens fuera de `localStorage`, pruebas automatizadas y paginación server-side en habitantes.
+- Pendientes principales: migración de tokens fuera de `localStorage`, CSRF, cobertura completa de pruebas/lint y paginación server-side en habitantes.
 
 ---
 

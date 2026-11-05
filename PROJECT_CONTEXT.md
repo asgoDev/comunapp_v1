@@ -160,7 +160,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 
 1. El usuario envía `identifier` (email/cédula) y `password`.
 2. El backend valida con Zod, busca al usuario, compara con bcrypt (timing-safe) y rechaza inactivos.
-3. Emite access + refresh tokens, los guarda en cookies `httpOnly` y los devuelve en el body.
+3. Emite access + refresh tokens, los guarda en cookies `httpOnly` y los devuelve en el body. Al renovar, el refresh presentado se consume atómicamente antes de emitir el nuevo par.
 4. El frontend guarda tokens en Zustand y los inyecta en `Authorization`.
 
 ### Scoping de habitantes
@@ -224,7 +224,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 
 - Módulos funcionales: auth, usuarios, comunidades, habitantes (incluida carga masiva y PDF), dashboard, auditoría y perfil.
 - La estética usa Tailwind con tokens CSS y tres temas.
-- Hay deudas de seguridad y documentación registradas en [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md) y resumidas en [`MEMORY.md`](./MEMORY.md). Las principales: rotación de refresh token, tokens en `localStorage`, regex sin escapar y cobertura de tests incompleta. R-01 (scoping de comunidades) quedó resuelto el 2026-11-04.
+- Hay deudas de seguridad y documentación registradas en [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md) y resumidas en [`MEMORY.md`](./MEMORY.md). Las principales: tokens en `localStorage`, regex sin escapar y cobertura de tests incompleta. R-01 (scoping de comunidades) y R-02 (rotación de refresh) quedaron resueltos el 2026-11-04.
 - `README.md` y `backend_api_guide.md` fueron reescritos y sincronizados el 2026-11-04.
 
 ---

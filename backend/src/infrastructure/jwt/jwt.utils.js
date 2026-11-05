@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'node:crypto';
 
 // Leer tiempos de expiración desde el entorno para permitir ajuste sin tocar el código.
 // Si no están definidos, se usan valores razonables por defecto.
@@ -9,7 +10,12 @@ export const generateAccessToken = (payload) =>
     jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: ACCESS_EXPIRES });
 
 export const generateRefreshToken = (payload) =>
-    jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES });
+    jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
+        expiresIn: REFRESH_EXPIRES,
+        // Identificador único: evita que dos refresh emitidos en el mismo segundo
+        // sean idénticos y garantiza que la rotación invalide solo el token anterior.
+        jwtid: randomUUID(),
+    });
 
 export const verifyAccessToken = (token) =>
     jwt.verify(token, process.env.JWT_ACCESS_SECRET);
