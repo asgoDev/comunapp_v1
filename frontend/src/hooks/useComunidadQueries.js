@@ -8,11 +8,12 @@ export function useComunidades(page = 1, filters = {}) {
   });
 }
 
-export function useComunidadesDropdown() {
+export function useComunidadesDropdown(options = {}) {
   return useQuery({
     queryKey: ['comunidades', 'dropdown'],
     queryFn: () => comunidadService.list(1, { limit: 200 }).then((res) => res.data.comunidades),
     staleTime: 30 * 60 * 1000, // 30 minutes
+    ...options,
   });
 }
 

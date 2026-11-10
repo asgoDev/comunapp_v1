@@ -8,16 +8,12 @@ import Icon from '../../components/ui/Icon';
 import Input from '../../components/ui/Input';
 import { Logo } from '../../components/ui/Logo';
 import { useBombonaJornadaActiva, useCrearPagoBombona } from '../../hooks/useBombonaPublicaQueries';
+import { TIPOS_BOMBONA } from '../../utils/bombonaAdmin';
 import { getBombonaErrorCode, getBombonaErrorMessage, mapBombonaApiErrors } from '../../utils/bombonaErrors';
 import { comprimirComprobante } from '../../utils/bombonaImage';
+import { formatVES } from '../../utils/currency';
 import { createIdempotencyKey } from '../../utils/idempotencyKey';
 import { pagoBombonasSchema } from '../../validations/pagoBombonas';
-
-const TIPOS_BOMBONA = [
-  { key: 'grande', nombre: 'Bombona grande', capacidad: '43 kg', icon: 'propane_tank' },
-  { key: 'mediana', nombre: 'Bombona mediana', capacidad: '18 kg', icon: 'propane_tank' },
-  { key: 'pequena', nombre: 'Bombona pequeña', capacidad: '10 kg', icon: 'propane_tank' },
-];
 
 const DEFAULT_VALUES = {
   calle: '',
@@ -27,13 +23,6 @@ const DEFAULT_VALUES = {
   comprobante: undefined,
   bombonas: { grande: 0, mediana: 0, pequena: 0 },
 };
-
-const formatVES = (amount) =>
-  new Intl.NumberFormat('es-VE', {
-    style: 'currency',
-    currency: 'VES',
-    minimumFractionDigits: 2,
-  }).format(Number(amount) || 0);
 
 const formatBytes = (bytes) => {
   if (bytes < 1024) return `${bytes} B`;

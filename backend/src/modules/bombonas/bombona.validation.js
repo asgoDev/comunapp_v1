@@ -95,7 +95,19 @@ export const listPagosQuerySchema = z
     comunidadId: objectId.optional(),
     jornadaId: objectId.optional(),
     estado: z.enum(["pendiente", "verificado", "rechazado"]).optional(),
+    calle: z
+      .string()
+      .trim()
+      .min(1, "La calle no puede estar vacía")
+      .max(120, "La calle no puede superar 120 caracteres")
+      .optional(),
     search: z.string().trim().max(80).optional(),
+  })
+  .strict();
+
+export const callesPorJornadaQuerySchema = z
+  .object({
+    jornadaId: objectId,
   })
   .strict();
 

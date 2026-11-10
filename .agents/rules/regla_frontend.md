@@ -8,7 +8,7 @@
 
 ## 1. Ámbito y enfoque
 
-- Un sprint = **un módulo frontend** (login, dashboard, comunidades, habitantes, usuarios, auditoría, perfil o Bombonas público).
+- Un sprint = **un módulo frontend** (login, dashboard, comunidades, habitantes, usuarios, auditoría, perfil, Bombonas público o Jornadas/Bombonas administrativo).
 - No desarrolles vistas, hooks y servicios de varios módulos completos en el mismo sprint.
 - Ajustes colaterales: solo los mínimos e imprescindibles; si el impacto es amplio, consulta.
 - Si la UI necesita un endpoint nuevo, primero se implementa y documenta el backend en un sprint separado.

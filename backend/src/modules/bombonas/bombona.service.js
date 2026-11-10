@@ -541,6 +541,7 @@ class BombonaService {
     }
     if (query.jornadaId) filter.jornada = query.jornadaId;
     if (query.estado) filter.estado = query.estado;
+    if (query.calle) filter.calle = query.calle;
     if (query.search) {
       const safeSearch = new RegExp(escapeRegex(query.search), "i");
       filter.$or = [
@@ -570,6 +571,26 @@ class BombonaService {
         pages: Math.ceil(total / query.limit),
       },
     };
+  }
+
+  async listCallesPorJornada(jornadaId, authenticatedUserId) {
+    const manager = await this._getManager(authenticatedUserId);
+    if (!mongoose.isValidObjectId(jornadaId)) {
+      throw new AppError("Jornada no encontrada.", 400, "JORNADA_NOT_FOUND");
+    }
+
+    const jornada = await JornadaBombona.findById(jornadaId).lean();
+    if (!jornada) throw new AppError("Jornada no encontrada.", 404, "JORNADA_NOT_FOUND");
+    this._assertCommunityScope(jornada, manager);
+
+    const callesRaw = await PagoBombona.distinct("calle", { jornada: jornada._id });
+    const calles = [...new Set(
+      callesRaw
+        .map((calle) => String(calle ?? "").trim())
+        .filter((calle) => calle.length > 0),
+    )].sort((left, right) => left.localeCompare(right, "es"));
+
+    return { calles };
   }
 
   async getPago(id, authenticatedUserId, includeComprobante = false) {

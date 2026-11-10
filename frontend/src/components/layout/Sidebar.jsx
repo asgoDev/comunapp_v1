@@ -1,4 +1,5 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import Icon from '../ui/Icon';
 import toast from 'react-hot-toast';
@@ -9,6 +10,15 @@ const navigation = [
   { name: 'Dashboard', icon: 'dashboard', path: '/', roles: ['admin', 'JEFE_COMUNIDAD', 'LIDER_CALLE'] },
   { name: 'Comunidades', icon: 'home_work', path: '/comunidades', roles: ['admin', 'JEFE_COMUNIDAD'] },
   { name: 'Habitantes', icon: 'groups', path: '/habitantes', roles: ['admin', 'JEFE_COMUNIDAD', 'LIDER_CALLE'] },
+  {
+    name: 'Jornadas',
+    icon: 'event_note',
+    type: 'group',
+    roles: ['admin', 'JEFE_COMUNIDAD'],
+    children: [
+      { name: 'Bombonas', icon: 'propane_tank', path: '/jornadas/bombonas' },
+    ],
+  },
   { name: 'Carga Masiva', icon: 'upload_file', path: '/habitantes/carga-masiva', roles: ['admin'] },
   { name: 'Usuarios', icon: 'admin_panel_settings', path: '/usuarios', roles: ['admin', 'JEFE_COMUNIDAD'] },
   { name: 'Auditoría', icon: 'history', path: '/auditoria', roles: ['admin'] },
@@ -20,10 +30,28 @@ const navigation = [
  */
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuthStore();
+  const [isJornadasOpen, setIsJornadasOpen] = useState(
+    () => location.pathname.startsWith('/jornadas'),
+  );
 
   const comunidad = user?.comunidad || {};
   const myComunity = comunidad?.nombre || '';
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/jornadas')) {
+      setIsJornadasOpen(true);
+    }
+  }, [location.pathname]);
+
+  const linkClassName = ({ isActive }) =>
+    `flex items-center gap-md px-md py-sm font-label-lg text-label-lg
+     transition-all duration-200 cursor-pointer rounded-lg
+     ${isActive
+      ? 'bg-white/90 text-primary border-l-4 border-yellow-500'
+      : 'text-white/70 hover:bg-primary-container/10 hover:text-white  active:translate-x-1'
+    }`;
 
   const handleLogout = async () => {
     await logout();
@@ -82,29 +110,62 @@ export default function Sidebar({ isOpen, onClose }) {
         {myComunity && <p className='text-white uppercase font-bold text-center px-md py-sm border-y border-outline-variant/20'>{myComunity}</p>}
 
         <nav className="flex-1 px-md py-lg space-y-xs overflow-y-auto">
-          {filteredNavigation.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/'}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center gap-md px-md py-sm font-label-lg text-label-lg
-                 transition-all duration-200 cursor-pointer rounded-lg
-                 ${isActive
-                  ? 'bg-white/90 text-primary border-l-4 border-yellow-500'
-                  : 'text-white/70 hover:bg-primary-container/10 hover:text-white  active:translate-x-1'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon name={item.icon} filled={isActive} />
-                  <span>{item.name}</span>
-                </>
-              )}
-            </NavLink>
-          ))}
+          {filteredNavigation.map((item) => {
+            if (item.type === 'group') {
+              return (
+                <div key={item.name}>
+                  <button
+                    type="button"
+                    onClick={() => setIsJornadasOpen((open) => !open)}
+                    aria-expanded={isJornadasOpen}
+                    aria-controls={isJornadasOpen ? 'nav-jornadas' : undefined}
+                    className="flex w-full items-center gap-md rounded-lg px-md py-sm text-left font-label-lg text-label-lg text-white/70 transition-all duration-200 hover:bg-primary-container/10 hover:text-white"
+                  >
+                    <Icon name={item.icon} />
+                    <span className="flex-1">{item.name}</span>
+                    <Icon name={isJornadasOpen ? 'expand_less' : 'expand_more'} size="20px" />
+                  </button>
+
+                  {isJornadasOpen && (
+                    <div id="nav-jornadas" className="mt-xs space-y-xs pl-md">
+                      {item.children.map((child) => (
+                        <NavLink
+                          key={child.path}
+                          to={child.path}
+                          onClick={onClose}
+                          className={linkClassName}
+                        >
+                          {({ isActive }) => (
+                            <>
+                              <Icon name={child.icon} filled={isActive} />
+                              <span>{child.name}</span>
+                            </>
+                          )}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === '/'}
+                onClick={onClose}
+                className={linkClassName}
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon name={item.icon} filled={isActive} />
+                    <span>{item.name}</span>
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
 
         <div className="p-md mt-auto border-t border-outline-variant/20">

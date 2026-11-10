@@ -110,7 +110,7 @@ frontend/
 ├── src/
 │   ├── components/         # layout y UI reutilizable
 │   ├── hooks/              # TanStack Query por módulo
-│   ├── pages/              # Login, Dashboard, Comunidades, Habitantes, Usuarios, Auditoría, Perfil, Bombonas pública
+│   ├── pages/              # Login, Dashboard, Comunidades, Habitantes, Usuarios, Auditoría, Perfil, Bombonas pública y Jornadas administrativas
 │   ├── services/           # axios por módulo
 │   ├── stores/             # authStore, uiStore
 │   ├── utils/              # formatters, pdfExport, venezuela.json

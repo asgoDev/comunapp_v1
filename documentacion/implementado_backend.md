@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-11-10 — Bombonas: filtro por calle y catálogo de calles de la jornada
+
+- **Objetivo:** habilitar el filtro server-side por calle en la futura pantalla administrativa de Jornadas/Bombonas, sin cambiar los contratos existentes de jornadas ni de revisión.
+- **Archivos:** `backend/src/modules/bombonas/bombona.validation.js`; `bombona.service.js`; `bombona.controller.js`; `bombona.routes.js`; `backend/test/bombona.service.test.js`; `backend_api_guide.md`; `conocimiento_back.md`.
+- **Cambios:**
+  - `GET /bombonas/pagos` acepta `calle` opcional (1–120 caracteres) y aplica coincidencia exacta después del scoping por rol.
+  - Nuevo `GET /bombonas/pagos/calles?jornadaId=<id>`: valida ObjectId, carga la jornada, aplica scoping (`admin` global; jefe solo su comunidad), consulta `distinct('calle')` de los pagos de esa jornada y devuelve `{ calles }` normalizadas, deduplicadas y ordenadas con `localeCompare('es')`.
+  - La ruta `/pagos/calles` se registró antes de `/pagos/:id` para evitar colisión de parámetros.
+  - Se mantienen las formas de respuesta, los códigos `JORNADA_NOT_FOUND`/`FORBIDDEN` y la auditoría existente (los GET no auditan).
+- **Verificación:** `node --check` en los cuatro archivos de módulo y en la prueba; `pnpm test` en `backend/` → 47/47 OK (3 pruebas nuevas: filtro exacto, calles únicas/ordenadas y rechazo de jornada ajena sin consultar pagos).
+- **Riesgos / pendientes:** el filtro por calle es exacto y depende de que la UI use el catálogo devuelto por el nuevo endpoint. Siguen fuera de alcance la edición de precios y el historial de jornadas.
+
+---
+
 ## 2026-11-05 — Módulo Bombonas: jornadas y pagos públicos
 
 - **Objetivo:** administrar jornadas por comunidad, aceptar pagos públicos con comprobante e idempotencia, y permitir su verificación/rechazo con scoping.

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { useUiStore } from './stores/uiStore';
 import ProtectedRoute from './components/layout/ProtectedRoute';
+import RoleRoute from './components/layout/RoleRoute';
 import AppLayout from './components/layout/AppLayout';
 import LoginPage from './pages/Login/LoginPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
@@ -20,6 +21,7 @@ import HabitanteDetailPage from './pages/Habitantes/HabitanteDetailPage';
 import HabitantesBulkPage from './pages/Habitantes/HabitantesBulkPage';
 import ProfilePage from './pages/Profile/ProfilePage';
 import PagoBombonasPage from './pages/Publico/PagoBombonasPage';
+import JornadasBombonasPage from './pages/Jornadas/JornadasBombonasPage';
 import { isPublicRoutePath } from './utils/routeAccess';
 
 
@@ -103,6 +105,11 @@ function App() {
 
           <Route path="auditoria" element={<AuditoriaPage />} />
           <Route path="perfil" element={<ProfilePage />} />
+
+          <Route element={<RoleRoute roles={['admin', 'JEFE_COMUNIDAD']} />}>
+            <Route path="jornadas" element={<Navigate to="/jornadas/bombonas" replace />} />
+            <Route path="jornadas/bombonas" element={<JornadasBombonasPage />} />
+          </Route>
         </Route>
       </Route>
 

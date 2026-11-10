@@ -4,6 +4,7 @@ import { authenticate, authorize } from "../../shared/middleware/auth.middleware
 import validate from "../../shared/middleware/validate.js";
 import bombonaController from "./bombona.controller.js";
 import {
+  callesPorJornadaQuerySchema,
   closeJornadaSchema,
   createJornadaSchema,
   idParamSchema,
@@ -81,6 +82,11 @@ router.get(
   "/pagos",
   validate(listPagosQuerySchema, "query"),
   bombonaController.listPagos,
+);
+router.get(
+  "/pagos/calles",
+  validate(callesPorJornadaQuerySchema, "query"),
+  bombonaController.listCallesPorJornada,
 );
 router.get(
   "/pagos/:id/comprobante",

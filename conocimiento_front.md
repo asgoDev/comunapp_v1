@@ -2,7 +2,7 @@
 
 > **Memoria de largo plazo del frontend.** Registra decisiones, convenciones y trampas que un agente debe conocer antes de modificar la UI, los hooks, los formularios o la autenticación. El historial de cambios vive en [`documentacion/implementado_frontend.md`](./documentacion/implementado_frontend.md).
 >
-> Última revisión: 2026-11-09.
+> Última revisión: 2026-11-10.
 
 ---
 
@@ -24,8 +24,8 @@
 ```text
 frontend/src/
 ├── components/
-│   ├── layout/       # AppLayout, Sidebar, TopBar, ProtectedRoute
-│   └── ui/           # Avatar, Button, Icon, Input, Logo, Pagination, ViewToggle
+│   ├── layout/       # AppLayout, Sidebar, TopBar, ProtectedRoute, RoleRoute
+│   └── ui/           # Avatar, Button, Icon, Input, Logo, Modal, Pagination, ViewToggle
 ├── hooks/            # use*Queries.js (TanStack Query)
 ├── lib/              # queryClient
 ├── pages/            # Un directorio por módulo
@@ -67,8 +67,13 @@ Componente / Page
 | Dashboard | `['dashboard', 'stats']` |
 | Perfil | `['profile']` |
 | Auditoría | `['auditoria', 'logs', { page, ...filters }]` |
+| Jornada activa Bombonas | `['bombonas', 'admin', 'jornada-activa', comunidadId]` |
+| Pagos Bombonas | `['bombonas', 'admin', 'pagos', filters]` |
+| Detalle de pago | `['bombonas', 'admin', 'pago', id]` |
+| Calles de jornada | `['bombonas', 'admin', 'calles', jornadaId]` |
 
 - Las mutaciones invalidan `['<modulo>']` y, cuando aplica, `['<modulo>', 'detail', id]` y `['<modulo>', 'resumen', id]`.
+- En Bombonas administrativo las keys se centralizan en `bombonaAdminKeys` (`useBombonaAdminQueries.js`). Revisar pagos invalida el prefijo `['bombonas', 'admin', 'pagos']` para cubrir todas las combinaciones de filtros.
 - `queryClient` global: `staleTime` 5 min, `gcTime` 10 min, `retry: 1`, `refetchOnWindowFocus: false`.
 - Los dropdowns pueden usar `staleTime` mayor (ej. 30 min).
 
@@ -106,6 +111,7 @@ Componente / Page
 - Solo verifica `isAuthenticated`.
 - **No** verifica rol. Cada página debe comprobar `user.role` y redirigir si no corresponde.
 - Las rutas reales están en `App.jsx`; el sidebar solo oculta enlaces, no protege la URL.
+- `RoleRoute` (`components/layout/RoleRoute.jsx`) es la guarda centralizada disponible desde el 2026-11-10. Redirige a `/` sin toast en render. Se usa en `/jornadas/*`; las páginas antiguas aún conservan sus guardas locales (R-07/R-36).
 
 ---
 
@@ -185,6 +191,7 @@ const { register, handleSubmit, reset, formState: { errors } } = useForm({
   - Dashboard: los tres roles.
   - Comunidades: `admin`, `JEFE_COMUNIDAD`.
   - Habitantes: los tres roles.
+  - Jornadas (grupo expandible): `admin`, `JEFE_COMUNIDAD`; contiene Bombonas (`/jornadas/bombonas`).
   - Carga Masiva: `admin`.
   - Usuarios: `admin`, `JEFE_COMUNIDAD`.
   - Auditoría: `admin`.
@@ -194,7 +201,7 @@ const { register, handleSubmit, reset, formState: { errors } } = useForm({
   - `ComunidadesPage`, `ComunidadFormPage`, `ComunidadResumenPage`: `admin` / `JEFE_COMUNIDAD` (formulario solo admin).
   - `HabitantesBulkPage`: solo admin.
   - `AuditoriaPage`: solo admin.
-- **Deuda:** las guardas están duplicadas y algunas se evalúan durante el render (incluido `toast.error`). Centralizar en un componente `RoleRoute` o helper reduce el riesgo de olvidar una protección.
+- **Deuda:** las guardas de las páginas antiguas siguen duplicadas y algunas se evalúan durante el render (incluido `toast.error`). `RoleRoute` ya existe y protege `/jornadas/*`; migrar el resto gradualmente (R-07/R-36).
 - **Regla:** nunca confíes en ocultar un botón como control de acceso; el backend debe rechazar la operación.
 
 ---
@@ -211,6 +218,7 @@ const { register, handleSubmit, reset, formState: { errors } } = useForm({
 | Auditoría | `Auditoria/AuditoriaPage.jsx` | Filtros por módulo/acción/resultado/fechas; solo admin. |
 | Perfil | `Profile/ProfilePage.jsx` | Edición de datos y cambio de contraseña. |
 | Bombonas pública | `Publico/PagoBombonasPage.jsx` | Consulta jornada pública, selección calle/casa, compresión JPG/PNG y envío idempotente sin sesión. |
+| Jornadas / Bombonas admin | `Jornadas/JornadasBombonasPage.jsx` y `Jornadas/components/*` | `admin` elige comunidad; jefe queda fijo a la suya. Crear/cerrar jornada en modales, filtros server-side por estado/calle/búsqueda, detalle de pago con comprobante firmado y revisión. |
 
 ### Habitantes: decisiones específicas
 
@@ -223,6 +231,8 @@ const { register, handleSubmit, reset, formState: { errors } } = useForm({
 ### Formateo
 
 - `formatBirthDate`: fecha `DD/MM/AAAA` en UTC.
+- `formatVES`: moneda venezolana (`es-VE`, dos decimales), compartida por la vista pública y la administrativa de Bombonas.
+- `formatFechaCorta` y `formatFechaHora`: fechas de jornadas/pagos con `Intl.DateTimeFormat('es-VE')`.
 - `calculateAge`: edad a partir de fecha de nacimiento.
 - `formatName`: **rota** (usa `String.prototype.capitalize`, que no existe) y no tiene consumidores. No usarla; si se necesita, implementarla correctamente.
 - Para nombres, la UI usa la clase CSS `capitalize` sobre los datos normalizados en minúsculas.
@@ -307,6 +317,9 @@ pnpm preview
 10. **No hay manejo centralizado de errores de red**; cada página decide el toast.
 11. **Documentación base:** `README.md` fue reescrito y sincronizado el 2026-11-04. Resuelto (R-21).
 12. **Bombonas pública:** backend implementado; formulario ya conectado, pero necesita variables Cloudinary en el backend para que el registro real finalice. Ver R-24/R-30.
+13. **Edición de precios de jornada:** no existe endpoint ni botón funcional; la tarjeta solo informa que llegará en una próxima versión. Cerrar y crear otra jornada es el flujo actual (R-34).
+14. **Historial de jornadas:** el backend lista jornadas con `activa=false`, pero la UI administrativa solo muestra la activa; falta una vista de historial (R-35).
+15. **Migración de guardas a `RoleRoute`:** solo `/jornadas/*` usa la guarda centralizada; las páginas antiguas mantienen lógica duplicada y toasts en render (R-07/R-36).
 
 ---
 

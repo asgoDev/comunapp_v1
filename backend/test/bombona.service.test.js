@@ -419,4 +419,66 @@ describe("BombonaService — jornadas y scoping", () => {
     assert.equal(signedUrl.mock.calls[0].arguments[0].publicId, publicId);
     assert.equal(signedUrl.mock.calls[0].arguments[0].format, "jpg");
   });
+
+  it("aplica el filtro exacto de calle en el listado administrativo de pagos", async (t) => {
+    mockManager(t, managerAdmin);
+    let capturedFilter;
+    t.mock.method(PagoBombona, "find", (filter) => {
+      capturedFilter = filter;
+      return queryChain([]);
+    });
+    t.mock.method(PagoBombona, "countDocuments", async () => 0);
+
+    await bombonaService.listPagos(
+      { page: 1, limit: 20, calle: "Calle 2" },
+      ADMIN_ID,
+    );
+
+    assert.equal(capturedFilter.calle, "Calle 2");
+  });
+
+  it("lista calles únicas, ordenadas y sin vacíos para una jornada del scope", async (t) => {
+    mockManager(t, {
+      _id: new mongoose.Types.ObjectId(ADMIN_ID),
+      role: "JEFE_COMUNIDAD",
+      comunidad: new mongoose.Types.ObjectId(COMUNIDAD_PROPIA),
+      estado: "activo",
+    });
+    t.mock.method(JornadaBombona, "findById", () => queryChain({
+      _id: new mongoose.Types.ObjectId(JORNADA_ID),
+      comunidad: new mongoose.Types.ObjectId(COMUNIDAD_PROPIA),
+    }));
+    const distinct = t.mock.method(PagoBombona, "distinct", async () => [
+      "Calle 2",
+      " Principal ",
+      "",
+      "Calle 2",
+      "Avenida 1",
+    ]);
+
+    const result = await bombonaService.listCallesPorJornada(JORNADA_ID, ADMIN_ID);
+
+    assert.deepEqual(result.calles, ["Avenida 1", "Calle 2", "Principal"]);
+    assert.equal(distinct.mock.callCount(), 1);
+  });
+
+  it("rechaza las calles de una jornada ajena sin consultar pagos", async (t) => {
+    mockManager(t, {
+      _id: new mongoose.Types.ObjectId(ADMIN_ID),
+      role: "JEFE_COMUNIDAD",
+      comunidad: new mongoose.Types.ObjectId(COMUNIDAD_PROPIA),
+      estado: "activo",
+    });
+    t.mock.method(JornadaBombona, "findById", () => queryChain({
+      _id: new mongoose.Types.ObjectId(JORNADA_ID),
+      comunidad: new mongoose.Types.ObjectId(COMUNIDAD_AJENA),
+    }));
+    const distinct = t.mock.method(PagoBombona, "distinct", async () => ["Calle 2"]);
+
+    await assert.rejects(
+      () => bombonaService.listCallesPorJornada(JORNADA_ID, ADMIN_ID),
+      (error) => error.statusCode === 403 && error.code === "FORBIDDEN",
+    );
+    assert.equal(distinct.mock.callCount(), 0);
+  });
 });

@@ -2,7 +2,7 @@
 
 > **Backlog de remediación.** Cada riesgo detectado en el escaneo del 2026-11-04 tiene un ID estable, prioridad, ubicación, impacto y remediación propuesta. Al resolverlo, actualizar su estado y registrar la evidencia en [`documentacion/implementado_backend.md`](./implementado_backend.md) o [`documentacion/implementado_frontend.md`](./implementado_frontend.md).
 >
-> **Estado:** 2026-11-09 · R-01, R-02, R-03, R-21, R-23, R-26, R-29 y R-32 resueltos; R-22, R-24, R-25 y R-28 parcialmente mitigados; otros abiertos.
+> **Estado:** 2026-11-10 · R-01, R-02, R-03, R-21, R-23, R-26, R-29 y R-32 resueltos; R-22, R-24, R-25 y R-28 parcialmente mitigados; otros abiertos. R-34/R-35/R-36 registran deudas del módulo Jornadas/Bombonas admin.
 
 ## Escala
 
@@ -52,6 +52,9 @@
 | **R-31** | P2 | Integridad / almacenamiento externo | Cloudinary y MongoDB no comparten transacción; la compensación elimina el asset si Mongo aborta, pero esa llamada también puede fallar o el commit puede quedar incierto. | Assets Cloudinary huérfanos o estado temporal no confirmado. | Compensación best-effort, mantener asset en resultado de commit incierto; diseñar reconciliación con tags/API Admin y alertas antes de subir tráfico. | Abierto |
 | **R-32** | P2 | Contrato / frontend | La vista pública mock no consumía el API y aceptaba PDF sin calle. | La UI enviaba campos incompatibles con el contrato de Bombonas. | La página ahora carga jornada/viviendas reales, elige calle+casa, admite JPG/PNG y envía multipart con Idempotency-Key; compresión configurable en navegador. | **Resuelto** (2026-11-09; `pnpm test` 18/18, `pnpm build`) |
 | **R-33** | P2 | Operación / retención | `backend/scripts/cleanup-bombona-comprobantes.js` no se ejecuta automáticamente; el límite de 60 días solo se cumple si el operador programa el comando `--apply`. | Si no se configura scheduler, los assets vencidos seguirán ocupando almacenamiento y créditos en Cloudinary. | Configurar una tarea programada diaria (por ejemplo Render Cron Job o GitHub Actions) con `MONGO_URI` y `CLOUDINARY_*`; monitorizar salida/código de fallo. El script queda dry-run por defecto y no debe activarse sin configurar secrets. | Abierto (decisión operativa diferida) |
+| **R-34** | P2 | Producto / backend | No existe endpoint para editar los precios de una jornada activa; la tarjeta administrativa solo informa que llegará en una próxima versión. | Un jefe debe cerrar la jornada y crear otra para corregir precios, perdiendo continuidad operativa. | Futuro `PATCH /bombonas/jornadas/:id/precios`: solo jornada activa, `admin` o jefe de la comunidad, Zod con máximo dos decimales, auditoría y `409` si ya cerró. UI: botón "Editar precios" en la tarjeta. | Abierto (deuda aprobada, no implementar sin sprint) |
+| **R-35** | P2 | Producto / frontend | La UI administrativa solo muestra la jornada activa; no hay historial de jornadas cerradas ni de sus pagos. | Imposible consultar cierres anteriores desde la interfaz. | Backend ya lista `activa=false`; futura ruta `/jornadas/bombonas/historial` con selector de jornada cerrada y tabla de pagos. | Abierto (fuera del sprint actual) |
+| **R-36** | P3 | UX / seguridad | Solo `/jornadas/*` usa `RoleRoute`; las páginas antiguas mantienen guardas duplicadas y algunas ejecutan `toast.error` durante el render. | Riesgo de olvidar una guarda y efectos secundarios en render (R-07). | Migrar gradualmente las páginas existentes a `RoleRoute` o a un helper equivalente; probar acceso por rol. | Abierto (mejora futura) |
 
 ---
 
@@ -82,6 +85,10 @@ Agrupar por módulo al planificar; no mezclar módulos completos en un mismo spr
 ### Fase 4 — Limpieza y UX (P3)
 
 12. **R-14**, **R-15**, **R-16**, **R-17** y **R-18**.
+
+### Fase 5 — Producto Jornadas/Bombonas (P2/P3)
+
+13. **R-34** (edición de precios), **R-35** (historial de jornadas) y **R-36** (migración de guardas a `RoleRoute`), cada uno en sprint separado.
 
 ---
 

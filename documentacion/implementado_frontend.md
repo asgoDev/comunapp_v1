@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-11-10 — Módulo Jornadas/Bombonas administrativo
+
+- **Objetivo:** crear la pantalla administrativa para gestionar la jornada activa de bombonas, consultar/filtrar sus pagos y revisar comprobantes, usando el contrato real del backend y el endpoint de calles agregado en la Fase A.
+- **Archivos:** `frontend/src/pages/Jornadas/JornadasBombonasPage.jsx` y `components/{JornadaActivaCard,CrearJornadaModal,CerrarJornadaModal,PagosTable,PagoDetalleModal}.jsx`; `frontend/src/{components/ui/Modal.jsx,components/layout/RoleRoute.jsx,components/layout/Sidebar.jsx,App.jsx}`; `frontend/src/{services/bombonaAdminService.js,hooks/useBombonaAdminQueries.js,validations/bombonaAdmin.js,utils/{bombonaAdmin,currency}.js}`; `frontend/src/hooks/useComunidadQueries.js`; `frontend/src/pages/Publico/PagoBombonasPage.jsx`; `frontend/test/bombonaAdmin.test.js`.
+- **Cambios:**
+  - Ruta `/jornadas/bombonas` protegida con `RoleRoute` (`admin`, `JEFE_COMUNIDAD`); `/jornadas` redirige. `LIDER_CALLE` vuelve a `/` sin toast en render.
+  - Sidebar con grupo expandible Jornadas > Bombonas, `aria-expanded`, apertura automática por URL y cierre del drawer móvil.
+  - Admin selecciona comunidad desde dropdown; jefe queda fijo a la comunidad de su sesión. Crear jornada se deshabilita si ya existe una activa.
+  - `Modal` reutilizable con portal, Escape, bloqueo de scroll, foco inicial/restaurado y `aria-modal`. Crear/cerrar jornada y detalle de pago lo reutilizan.
+  - Crear jornada: RHF+Zod con precios de máximo dos decimales y Pago Móvil; `409 JORNADA_ACTIVA_EXISTENTE` cierra el modal e invalida la jornada activa. Cerrar jornada pide motivo opcional y advierte que el formulario público dejará de recibir pagos.
+  - Tabla solo de la jornada activa; filtros server-side por estado, calle (`/pagos/calles`) y búsqueda; `placeholderData` conserva la página anterior solo dentro de la misma jornada; fila y botón accesible abren el detalle.
+  - Detalle: datos del pago, cantidades, precios snapshot, revisión y comprobante con URL firmada abierta en pestaña nueva + enlace alternativo si el navegador bloquea. Verificar/rechazar con motivo (Zod) e invalidación del listado/detalle; `PAGO_YA_REVISADO` refresca el estado.
+  - `formatVES` se extrajo a `utils/currency.js`; `TIPOS_BOMBONA` quedó en un único origen (`utils/bombonaAdmin.js`) y la página pública lo importa.
+- **Verificación:** `frontend/pnpm test` → 29/29 OK (11 nuevas de helpers, servicio autenticado y validaciones); `frontend/pnpm build` → 518 módulos, 0 errores; `git diff --check` sin errores de whitespace. Persisten warnings preexistentes de Browserslist y chunk >500 kB. No se ejecutó prueba manual con backend/Mongo ni subida real a Cloudinary.
+- **Riesgos / pendientes:** R-34 edición de precios, R-35 historial de jornadas y R-36 migración de guardas a `RoleRoute` quedan registrados. La validación frontend es UX; scoping, precios y revisión siguen siendo autoritativos en backend.
+
+---
+
 ## 2026-11-09 — Integración pública de Bombonas
 
 - **Objetivo:** conectar la vista pública con el API de Bombonas, actualizarla al contrato calle+casa y optimizar comprobantes localmente sin guardar PII ni tokens en almacenamiento persistente.

@@ -22,7 +22,7 @@
 **Roles reales:** `admin`, `JEFE_COMUNIDAD`, `LIDER_CALLE`.
 
 **Módulos backend:** `auth`, `users`, `comunidades`, `habitantes`, `dashboard`, `auditoria`, `profile`, `bombonas`.
-**Módulos frontend:** Login, Dashboard, Comunidades, Habitantes, Usuarios, Auditoría, Perfil, Bombonas público.
+**Módulos frontend:** Login, Dashboard, Comunidades, Habitantes, Usuarios, Auditoría, Perfil, Bombonas público y Jornadas/Bombonas administrativo.
 
 ---
 

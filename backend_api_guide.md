@@ -861,7 +861,8 @@ La integración usa la subida firmada del SDK oficial y no usa `unsigned upload 
 
 ### 10.4 Consulta y revisión de pagos
 
-- `GET /bombonas/pagos?page=1&limit=20&comunidadId=<id>&jornadaId=<id>&estado=pendiente|verificado|rechazado&search=<texto>`: listado paginado; `limit` máximo 100. La búsqueda escapa regex; el jefe solo consulta su comunidad.
+- `GET /bombonas/pagos?page=1&limit=20&comunidadId=<id>&jornadaId=<id>&estado=pendiente|verificado|rechazado&calle=<texto>&search=<texto>`: listado paginado; `limit` máximo 100. `calle` aplica coincidencia exacta (1–120 caracteres) después del scoping por rol. La búsqueda escapa regex; el jefe solo consulta su comunidad.
+- `GET /bombonas/pagos/calles?jornadaId=<id>`: devuelve las calles con pagos registrados en la jornada, únicas, sin vacíos y ordenadas alfabéticamente en español. Requiere `admin` o jefe de la comunidad de la jornada; un jefe de otra comunidad recibe `403 FORBIDDEN` y una jornada inexistente `404 JORNADA_NOT_FOUND`. Respuesta: `{ "calles": ["Avenida 1", "Calle 2", "Principal"] }`. La ruta se declara antes de `/pagos/:id` para que `calles` no se interprete como un ID.
 - `GET /bombonas/pagos/:id`: detalle sin URL de Cloudinary ni identificadores internos del asset.
 - `GET /bombonas/pagos/:id/comprobante`: devuelve `{ "url": "<URL firmada>", "expiraEn": "<fecha ISO>" }` con `Cache-Control: private, no-store`; vence en 5 minutos. Solo admin global o jefe de esa comunidad. El cliente abre la URL firmada en navegación separada para evitar cargarla como XHR cross-origin.
 - `PATCH /bombonas/pagos/:id/revision`: `{ "estado": "verificado" }` o `{ "estado": "rechazado", "motivoRechazo": "La referencia no coincide con el comprobante." }`. Solo pagos `pendiente`; repetir el mismo estado final es idempotente; intentar el estado opuesto responde `409 PAGO_YA_REVISADO`.

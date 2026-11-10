@@ -75,6 +75,14 @@ class BombonaController {
     }
   }
 
+  async listCallesPorJornada(req, res, next) {
+    try {
+      res.json(await bombonaService.listCallesPorJornada(req.validatedQuery.jornadaId, req.user.id));
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getPago(req, res, next) {
     try {
       res.json(await bombonaService.getPagoDetail(req.validatedParams.id, req.user.id));

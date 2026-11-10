@@ -153,7 +153,10 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 | POST | `/bombonas/jornadas` | `admin`, `JEFE_COMUNIDAD` | Crear jornada de bombonas |
 | GET | `/bombonas/jornadas` | `admin`, `JEFE_COMUNIDAD` | Listar jornadas con scoping |
 | PATCH | `/bombonas/jornadas/:id/cerrar` | `admin`, `JEFE_COMUNIDAD` | Cerrar jornada |
-| GET | `/bombonas/pagos` | `admin`, `JEFE_COMUNIDAD` | Consultar pagos con scoping |
+| GET | `/bombonas/pagos` | `admin`, `JEFE_COMUNIDAD` | Consultar pagos con scoping; filtros estado/calle/búsqueda |
+| GET | `/bombonas/pagos/calles` | `admin`, `JEFE_COMUNIDAD` | Calles con pagos de una jornada, con scoping |
+| GET | `/bombonas/pagos/:id` | `admin`, `JEFE_COMUNIDAD` | Detalle de pago |
+| GET | `/bombonas/pagos/:id/comprobante` | `admin`, `JEFE_COMUNIDAD` | URL firmada temporal del comprobante |
 | PATCH | `/bombonas/pagos/:id/revision` | `admin`, `JEFE_COMUNIDAD` | Verificar o rechazar pago |
 | GET | `/publico/bombonas/comunidades/:comunidadId/jornada-activa` | Público | Consultar precios, Pago Móvil y casas agrupadas por calle |
 | POST | `/publico/bombonas/comunidades/:comunidadId/pagos` | Público + rate limit/idempotencia | Registrar pago y comprobante |
@@ -200,6 +203,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 4. El alta pública exige JPG/PNG, referencia única por jornada y UUID `Idempotency-Key`; el backend valida firma/tamaño, calcula el total y sube el comprobante mediante SDK firmado a Cloudinary como `authenticated`.
 5. MongoDB guarda `secureUrl`, `publicId` y metadatos, nunca bytes. El alta actualiza jornada y pago en una transacción MongoDB; requiere replica set o clúster sharded.
 6. La descarga valida scoping y devuelve URL Cloudinary firmada por cinco minutos. El job a 60 días es simulación por defecto; requiere `--apply` y scheduler externo para borrar recursos.
+7. En la UI administrativa (`/jornadas/bombonas`), `admin` selecciona comunidad y `JEFE_COMUNIDAD` queda fijo a la suya. La tabla solo lista pagos de la jornada activa; estado/calle/búsqueda se filtran en servidor. El detalle obtiene una URL firmada y permite verificar o rechazar con motivo. Cerrar la jornada deshabilita el formulario público y permite crear otra.
 
 ---
 
@@ -221,9 +225,11 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 | `/habitantes/carga-masiva` | Carga masiva | `admin` |
 | `/auditoria` | Auditoría | `admin` |
 | `/perfil` | Perfil | Todos |
+| `/jornadas` | Redirige a `/jornadas/bombonas` | `admin`, `JEFE_COMUNIDAD` |
+| `/jornadas/bombonas` | Jornadas y pagos de bombonas (administrativo) | `admin`, `JEFE_COMUNIDAD` |
 | `/publico/pago-bombonas/:comunidadId` | Formulario público conectado a la jornada de bombonas | Público |
 
-`ProtectedRoute` solo valida autenticación; cada página valida el rol.
+`ProtectedRoute` solo valida autenticación; cada página valida el rol. `RoleRoute` centraliza la guarda de `/jornadas/*` desde el 2026-11-10.
 
 ---
 
@@ -241,9 +247,9 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 
 ## 9. Estado actual y límites
 
-- Módulos funcionales: auth, usuarios, comunidades, habitantes (incluida carga masiva y PDF), dashboard, auditoría, perfil y bombonas. La ruta pública de bombonas ya consulta el backend y envía pagos; el registro Cloudinary requiere configurar credenciales en el backend. La compresión de imágenes ocurre en el navegador; el backend sigue siendo autoritativo.
+- Módulos funcionales: auth, usuarios, comunidades, habitantes (incluida carga masiva y PDF), dashboard, auditoría, perfil, Bombonas público y Jornadas/Bombonas administrativo. La ruta pública consulta el backend y envía pagos; el registro Cloudinary requiere configurar credenciales en el backend. La compresión de imágenes ocurre en el navegador; el backend sigue siendo autoritativo.
 - La estética usa Tailwind con tokens CSS y tres temas.
-- Existe una vista pública frontend de demostración para registrar solicitudes de bombonas. Actualmente usa comunidades, casas y precios mock, calcula el total localmente y no realiza peticiones al backend.
+- La vista administrativa `/jornadas/bombonas` consume el API real: jornada activa, creación/cierre, filtros server-side, detalle de pago, comprobante firmado y revisión. Edición de precios e historial de jornadas son deuda registrada (R-34/R-35).
 - Hay deudas de seguridad y documentación registradas en [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md) y resumidas en [`MEMORY.md`](./MEMORY.md). Las principales: CSRF, regex sin escapar y cobertura de tests incompleta. R-01 (scoping de comunidades), R-02 (rotación de refresh) y R-03 (tokens fuera de `localStorage`) quedaron resueltos el 2026-11-04.
 - `README.md` y `backend_api_guide.md` fueron reescritos y sincronizados el 2026-11-04.
 
