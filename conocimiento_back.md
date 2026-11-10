@@ -2,7 +2,7 @@
 
 > **Memoria de largo plazo del backend.** No es un changelog: registra decisiones, invariantes, contratos y trampas que un agente debe conocer antes de modificar el backend. El historial de cambios vive en [`documentacion/implementado_backend.md`](./documentacion/implementado_backend.md).
 >
-> Última revisión: 2026-11-05.
+> Última revisión: 2026-11-06.
 
 ---
 
@@ -246,15 +246,18 @@ Los CRUD anteriores a Bombonas afectan un solo documento. Toda operación nueva 
 
 - `JornadaBombona` mantiene como máximo una jornada activa por comunidad mediante índice único parcial `{ comunidad }` donde `activa: true`.
 - Precios y total se persisten en céntimos enteros; el API convierte a VES decimal al responder.
-- `PagoBombona` guarda snapshot de precios y comprobante privado. El campo binario y hashes de idempotencia/request usan `select: false` y nunca se serializan en respuestas.
+- `PagoBombona` guarda snapshot de precios, `secureUrl` y metadatos del comprobante Cloudinary `authenticated`; no existe campo binario en el modelo. `secureUrl`, `publicId`, `assetId` y hashes usan `select: false` y no se serializan.
 - La clave UUID v4 se almacena como SHA-256 y es única por comunidad. El `requestHash` con datos normalizados más SHA-256 del archivo permite repetir exactamente un envío, pero rechaza reutilizar la clave con otro contenido.
+- El backend acepta solo JPG/JPEG/PNG, valida extensión, MIME y firma binaria, y sube mediante el SDK firmado oficial. No hay `unsigned upload preset`, URL aportada por el cliente ni fallback a Mongo. Las credenciales Cloudinary viven solo en `.env`; si faltan, las operaciones dependientes responden `503`. El backend no comprime la imagen; el frontend se integrará en sprint aparte.
+- Recursos: `comunapp/bombonas/<entorno>/<comunidad>/<jornada>/<uuid>`, `type: authenticated`, `overwrite: false`, sin nombre original y sin backup. La URL almacenada no da acceso: la descarga privada emite una URL firmada de 5 minutos tras scoping.
+- La limpieza a 60 días está en `scripts/cleanup-bombona-comprobantes.js`; es dry-run por defecto, limita cada ejecución a 100 y requiere `--apply` para destruir assets. Conserva el registro del pago y marca el comprobante no disponible.
 - Referencia normalizada es única por jornada. Los índices también se aplican en la BD para cerrar carreras entre validación e inserción.
-- El registro público modifica `JornadaBombona.pagosRegistrados` y crea el pago bajo una transacción. La actualización condicional de la jornada compite con el cierre y evita registrar un pago en una jornada cerrada.
+- El registro público verifica calle+número, modifica `JornadaBombona.pagosRegistrados` y crea el pago bajo una transacción. La subida Cloudinary sucede antes de la transacción; si Mongo aborta se intenta borrar ese asset. Ante resultado de commit incierto no se borra para evitar una referencia rota.
 - MongoDB transaccional debe operar como replica set o clúster sharded. `server.js` crea explícitamente los índices de Bombonas antes de escuchar.
 - Los limitadores específicos de API pública usan memoria local; requieren store compartido antes de escalar a varias instancias. El honeypot no sustituye CAPTCHA/antibot ni una estrategia contra botnets.
 - Las mutaciones privadas de Bombonas exigen `Authorization: Bearer` aun cuando el resto del API permita fallback a cookie; el frontend conserva el access token en memoria y lo envía en ese header.
-- El modelo `Habitante` agrupa casas por calle y número; la API pública actual solo expone número según el contrato inicial. Si los números se repiten entre calles, la vivienda es ambigua: no integrar hasta decidir si se incluye calle o un ID estable (R-29).
-- Ver contrato completo y riesgos de antivirus, datos de Pago Móvil expuestos y presión de memoria en [`backend_api_guide.md`](./backend_api_guide.md) y [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
+- `GET jornada-activa` devuelve casas agrupadas por calle y el alta exige ambas claves, cerrando R-29.
+- Riesgos residuales: el Buffer vive transitoriamente en memoria, no se incluye antivirus, la URL firmada puede compartirse durante 5 minutos, la compensación no puede garantizarse ante falla concurrente de Cloudinary y la limpieza requiere scheduler externo. El plan Free mide storage, transformaciones y bandwidth mediante créditos. Ver [`backend_api_guide.md`](./backend_api_guide.md) y [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
 
 ---
 
@@ -330,7 +333,7 @@ pnpm start        # producción
 node --check src/modules/<modulo>/<archivo>.js
 ```
 
-Variables de entorno usadas por el backend (solo nombres): `PORT`, `NODE_ENV`, `MONGO_URI`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES`, `JWT_REFRESH_EXPIRES`, `FRONTEND_URL`, `RENDER`, `SEED_NOMBRE`, `SEED_APELLIDO`, `SEED_CEDULA`, `SEED_EMAIL`, `SEED_PASSWORD`.
+Variables de entorno usadas por el backend (solo nombres): `PORT`, `NODE_ENV`, `MONGO_URI`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES`, `JWT_REFRESH_EXPIRES`, `FRONTEND_URL`, `RENDER`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `CLOUDINARY_UPLOAD_TIMEOUT_MS`, `COMPROBANTE_RETENTION_DAYS`, `SEED_NOMBRE`, `SEED_APELLIDO`, `SEED_CEDULA`, `SEED_EMAIL`, `SEED_PASSWORD`.
 
 **Nota de puertos:** `server.js` usa `PORT || 3000`; la guía y el proxy de Vite apuntan a `5000`. Verifica el `.env` local y unifica la convención; el README y la guía documentan la diferencia.
 

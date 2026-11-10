@@ -1,7 +1,7 @@
 # MEMORY.md — ComunApp v1
 
 > Memoria inter-sprint. Actualizar al cerrar cada sprint o cambio relevante.
-> **Última actualización:** 2026-11-05 · Módulo backend Bombonas implementado.
+> **Última actualización:** 2026-11-09 · Formulario público Bombonas integrado.
 
 ---
 
@@ -19,16 +19,16 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 | `JEFE_COMUNIDAD` | Su comunidad; lectura de habitantes; gestiona `LIDER_CALLE` |
 | `LIDER_CALLE` | Su comunidad + su calle; CRUD de habitantes de su calle |
 
-## Estado actual (2026-11-05)
+## Estado actual (2026-11-09)
 
 - **Auth:** login por email/cédula, refresh con rotación atómica y `jti`, logout con blacklist, `/me`, cookies `httpOnly` + access token en body, rate limiting. El refresh solo viaja por cookie; el frontend mantiene el access en memoria (R-03 resuelto).
 - **Usuarios:** CRUD con scoping para `JEFE_COMUNIDAD` (solo `LIDER_CALLE` de su comunidad), soft delete, cédula inmutable.
 - **Comunidades:** CRUD admin, soft delete, resumen, validación de duplicados; lectura con scoping para `JEFE_COMUNIDAD` (R-01 resuelto).
 - **Habitantes:** CRUD con scoping por comunidad/calle, unicidad de cédula por comunidad, carga masiva admin (máx. 500; 207 parcial), vistas casas/listado y export PDF.
-- **Bombonas (backend):** jornadas por comunidad, una activa por comunidad, precios en céntimos, consulta pública, registro multipart idempotente con cálculo server-side y revisión de pagos. Requiere Mongo replica set/sharded para transacciones.
+- **Bombonas (backend):** jornadas por comunidad, una activa por comunidad, casas agrupadas por calle, precios en céntimos, registro idempotente y revisión. Comprobantes JPG/PNG a Cloudinary `authenticated`; Mongo guarda URL/metadatos, no bytes. Requiere Mongo replica set/sharded.
 - **Dashboard:** métricas por rol. **Auditoría:** logs de escritura (solo admin). **Perfil:** datos propios y cambio de contraseña.
-- **Frontend:** temas por variables CSS (`default`, `emerald`, `matrix`), layout responsive, TanStack Query, RHF+Zod, toasts y export PDF. Auth sin persistencia: access en memoria, refresh por cookie y bootstrap con fallback a login en iOS cross-site. Se añadió vista pública mock `/publico/pago-bombonas/:comunidadId`, sin backend ni persistencia.
-- **Pruebas:** backend 38/38 (`pnpm test`); frontend 9/9 (`pnpm test` con Vite SSR). Faltan lint y cobertura amplia.
+- **Frontend:** temas por variables CSS (`default`, `emerald`, `matrix`), layout responsive, TanStack Query, RHF+Zod, toasts y export PDF. Auth sin persistencia; la ruta pública Bombonas evita bootstrap de sesión, usa cliente sin Authorization, consume jornada real, agrupa calle/casa, optimiza JPG/PNG y envía con idempotencia.
+- **Pruebas:** backend 44/44 (`pnpm test`); frontend 18/18 (`pnpm test` con Vite SSR) y `pnpm build` correcto. Falta probar upload con Cloudinary real; el build conserva warnings preexistentes de Browserslist/chunk.
 
 ## Decisiones vigentes
 
@@ -54,19 +54,23 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 - **R-05 (P1, integridad):** cédula de habitante sin índice único compuesto; riesgo de carrera.
 - **R-06 (P1, seguridad):** CSRF con cookies `sameSite: 'none'` y fallback de cookie.
 - **R-07 (P1, seguridad/UX):** guardas de rol duplicadas; `ProtectedRoute` solo valida autenticación.
-- **R-08 (P1, calidad):** backend 38/38 y frontend 9/9; faltan lint, pruebas HTTP/integración y cobertura más amplia.
+- **R-08 (P1, calidad):** backend 44/44 y frontend 18/18; faltan lint, pruebas HTTP/integración y cobertura más amplia.
 - **R-09 (P2, rendimiento):** `HabitantesPage` usa `limit=9999` y pagina en cliente.
 - **R-10 (P2, contrato):** `/auth/login` devuelve `id`; `/auth/me` y los CRUD devuelven `_id`.
 - **R-11 a R-20:** contrato de auditoría, límites de paginación, modelo implícito, código muerto, configuración, idempotencia, errores de campo, sanitización anidada, revocación al cambiar contraseña y duplicados de comunidad. Ver registro.
 - **R-21 (documentación):** resuelto el 2026-11-04.
 - **R-22 (P1, parcial):** límites por IP/comunidad, honeypot, validación y claves idempotentes ya aplicados; store es local por proceso y falta antibot/CAPTCHA adaptativo.
 - **R-23 (P1):** resuelto el 2026-11-05; backend calcula el total y guarda snapshot en céntimos con pruebas.
-- **R-24 (P1, parcial):** límites 5 MiB, MIME/extensión/firma y descarga privada implementados; falta antimalware, ciclo de retención y pruebas HTTP de upload.
-- **R-25 (P2, parcial):** solo se publican casas numéricas, pero los datos Pago Móvil (titular, teléfono, documento) son públicos por requisito; confirmar consentimiento/minimización.
-- **R-26 (P2):** el bootstrap global de auth bloquea inicialmente la vista pública; separar o hacer no bloqueante antes de producción.
+- **R-24 (P1, parcial):** comprobantes JPG/PNG en Cloudinary `authenticated`, firma/tamaño validados y cleanup a 60 días preparado; no hay antivirus. Evaluar Cloudinary Perception Point (plan/coste) y falta smoke en cuenta real.
+- **R-25 (P2, parcial):** se publican casas agrupadas por calle y datos Pago Móvil (titular, teléfono, documento); confirmar consentimiento/minimización.
+- **R-26:** resuelto el 2026-11-09: `/publico/*` no espera bootstrap ni dispara chequeos de auth.
 - **R-27 (P1):** confirmar MongoDB replica set/sharded para transacciones; índices críticos se crean antes de `listen`.
-- **R-28 (P2):** comprobantes de hasta 5 MiB pasan por `memoryStorage` y se guardan en Mongo; monitorear RAM/volumen y reevaluar GridFS/streaming.
-- **R-29 (P1):** la casa se identifica por calle+número en el modelo, pero el endpoint público usa solo número; puede ser ambiguo entre calles. Resolver contrato antes de integrar.
+- **R-28 (P2, parcial):** comprobantes ya no se persisten en Mongo, pero el buffer de hasta 5 MiB vive temporalmente en RAM; evaluar streaming si aumenta concurrencia.
+- **R-29:** resuelto: API pública agrupa casas por calle y exige `calle + numeroCasa`.
+- **R-30 (P2, residual):** URL Cloudinary firmada puede compartirse durante 5 minutos; el plan Free consume créditos por almacenamiento/bandwidth.
+- **R-31 (P2):** compensación de upload es best-effort; un fallo simultáneo de Mongo y Cloudinary puede dejar un asset huérfano que el cleanup por pagos no encontrará.
+- **R-32:** resuelto el 2026-11-09: el formulario público consume la API, selecciona calle/casa, envía JPG/PNG comprimido y usa `Idempotency-Key`.
+- **R-33 (P2):** cleanup 60 días preparado en dry-run, pero falta programar scheduler de despliegue; sin él no se borran automáticamente assets vencidos.
 
 ## Próximos pasos recomendados
 
@@ -74,7 +78,7 @@ Backend: `Route -> authenticate/authorize -> validate(Zod) -> Controller -> Serv
 2. Remediar P1: **R-04**, **R-05**, **R-06**, **R-07** y **R-08**.
 3. Ampliar la suite de pruebas y añadir lint; paginación server-side (**R-09**, **R-12**).
 4. Resolver P2/P3 restantes según [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md).
-5. Resolver R-29 acordando identificación de vivienda; integrar en sprint frontend independiente. Antes de producción atender R-22, R-24 a R-28 y confirmar consentimiento de Pago Móvil.
+5. Configurar credenciales Cloudinary en backend y, cuando corresponda, scheduler para el cleanup (R-33). Antes de producción atender R-22, R-24, R-27, R-30/R-31 y confirmar consentimiento de Pago Móvil.
 
 ## Referencias
 

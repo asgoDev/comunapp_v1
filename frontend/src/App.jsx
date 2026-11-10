@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { useUiStore } from './stores/uiStore';
 import ProtectedRoute from './components/layout/ProtectedRoute';
@@ -20,9 +20,12 @@ import HabitanteDetailPage from './pages/Habitantes/HabitanteDetailPage';
 import HabitantesBulkPage from './pages/Habitantes/HabitantesBulkPage';
 import ProfilePage from './pages/Profile/ProfilePage';
 import PagoBombonasPage from './pages/Publico/PagoBombonasPage';
+import { isPublicRoutePath } from './utils/routeAccess';
 
 
 function App() {
+  const location = useLocation();
+  const isPublicRoute = isPublicRoutePath(location.pathname);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isInitializing = useAuthStore((s) => s.isInitializing);
   const checkAuth = useAuthStore((s) => s.checkAuth);
@@ -30,11 +33,12 @@ function App() {
   const theme = useUiStore((s) => s.theme);
 
   useEffect(() => {
+    if (isPublicRoute) return;
     initializeAuth();
-  }, [initializeAuth]);
+  }, [initializeAuth, isPublicRoute]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || isPublicRoute) return;
 
     const verifySession = () => {
       checkAuth({ silent: true });
@@ -47,13 +51,13 @@ function App() {
       clearInterval(interval);
       window.removeEventListener('focus', verifySession);
     };
-  }, [checkAuth, isAuthenticated]);
+  }, [checkAuth, isAuthenticated, isPublicRoute]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  if (isInitializing) {
+  if (isInitializing && !isPublicRoute) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background font-montserrat">
         <div className="relative flex items-center justify-center mb-6">

@@ -48,6 +48,11 @@ export const createJornadaSchema = z
 
 export const createPublicPaymentSchema = z
   .object({
+    calle: z
+      .string({ required_error: "La calle es requerida" })
+      .trim()
+      .min(1, "Seleccione una calle")
+      .max(120, "El nombre de la calle no puede superar 120 caracteres"),
     numeroCasa: z.string().trim().regex(NUMERO_CASA_REGEX, "El número de casa debe contener solo dígitos"),
     propietario: textoNombre,
     referencia: z

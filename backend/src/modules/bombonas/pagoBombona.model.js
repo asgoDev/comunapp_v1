@@ -2,10 +2,25 @@ import mongoose from "mongoose";
 
 const comprobanteSchema = new mongoose.Schema(
   {
-    contentType: { type: String, required: true, enum: ["image/jpeg", "image/png", "application/pdf"] },
+    secureUrl: {
+      type: String,
+      required: true,
+      select: false,
+      match: /^https:\/\/res\.cloudinary\.com\//,
+    },
+    publicId: { type: String, required: true, select: false, maxlength: 255 },
+    assetId: { type: String, required: true, select: false, maxlength: 100 },
+    format: { type: String, required: true, enum: ["jpg", "jpeg", "png"] },
+    resourceType: { type: String, required: true, enum: ["image"] },
+    deliveryType: { type: String, required: true, enum: ["authenticated"] },
+    contentType: { type: String, required: true, enum: ["image/jpeg", "image/png"] },
     size: { type: Number, required: true, min: 1, max: 5 * 1024 * 1024 },
-    sha256: { type: String, required: true, match: /^[a-f0-9]{64}$/ },
-    contenido: { type: Buffer, required: true, select: false },
+    sha256: { type: String, required: true, select: false, match: /^[a-f0-9]{64}$/ },
+    disponible: { type: Boolean, required: true, default: true },
+    expiraEn: { type: Date, required: true },
+    eliminadoEn: { type: Date, default: null },
+    intentosLimpieza: { type: Number, min: 0, default: 0 },
+    ultimoIntentoLimpieza: { type: Date, default: null },
   },
   { _id: false },
 );
@@ -73,6 +88,11 @@ pagoBombonaSchema.index(
 );
 pagoBombonaSchema.index({ comunidad: 1, estado: 1, createdAt: -1 });
 pagoBombonaSchema.index({ jornada: 1, estado: 1, createdAt: -1 });
+pagoBombonaSchema.index({
+  "comprobante.disponible": 1,
+  "comprobante.ultimoIntentoLimpieza": 1,
+  "comprobante.expiraEn": 1,
+});
 
 const PagoBombona = mongoose.model("PagoBombona", pagoBombonaSchema);
 export default PagoBombona;

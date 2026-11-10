@@ -8,7 +8,6 @@ const MAX_MULTIPART_BYTES = MAX_COMPROBANTE_BYTES + 32 * 1024;
 const MIME_EXTENSION = new Map([
   ["image/jpeg", new Set([".jpg", ".jpeg"])],
   ["image/png", new Set([".png"])],
-  ["application/pdf", new Set([".pdf"])],
 ]);
 
 const upload = multer({
@@ -16,8 +15,8 @@ const upload = multer({
   limits: {
     fileSize: MAX_COMPROBANTE_BYTES,
     files: 1,
-    fields: 7,
-    parts: 8,
+    fields: 8,
+    parts: 9,
     fieldNameSize: 50,
     fieldSize: 1024,
   },
@@ -28,7 +27,7 @@ const upload = multer({
       .toLowerCase();
 
     if (!extensions || !extensions.has(extension)) {
-      return callback(new AppError("El comprobante debe ser JPG, PNG o PDF con extensión y MIME coherentes.", 415, "INVALID_FILE_TYPE"));
+      return callback(new AppError("El comprobante debe ser JPG o PNG con extensión y MIME coherentes.", 415, "INVALID_FILE_TYPE"));
     }
     callback(null, true);
   },
@@ -77,7 +76,6 @@ export const validateComprobanteSignature = (file) => {
   const signatures = {
     "image/jpeg": bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff,
     "image/png": bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
-    "application/pdf": bytes.length >= 5 && bytes.subarray(0, 5).toString("ascii") === "%PDF-",
   };
 
   if (!Object.hasOwn(signatures, file.mimetype)) {
@@ -91,8 +89,9 @@ export const validateComprobanteSignature = (file) => {
 
   return {
     contentType: file.mimetype,
+    format: file.mimetype === "image/jpeg" ? "jpg" : "png",
     size: bytes.length,
     sha256: createHash("sha256").update(bytes).digest("hex"),
-    contenido: bytes,
+    buffer: bytes,
   };
 };

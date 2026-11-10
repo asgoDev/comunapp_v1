@@ -6,6 +6,7 @@ import User from "../users/user.model.js";
 import AppError from "../../shared/errors/AppError.js";
 import JornadaBombona from "./jornadaBombona.model.js";
 import PagoBombona from "./pagoBombona.model.js";
+import cloudinaryService from "./cloudinary.service.js";
 
 const toCentavos = (amount) => Math.round(amount * 100);
 const toVES = (centavos) => Number((centavos / 100).toFixed(2));
@@ -40,6 +41,7 @@ const serializePayment = (payment) => ({
   jornada: payment.jornada,
   comunidad: payment.comunidad,
   codigoSeguimiento: payment.codigoSeguimiento,
+  calle: payment.calle,
   numeroCasa: payment.numeroCasa,
   propietario: payment.propietario,
   referencia: payment.referencia,
@@ -52,7 +54,13 @@ const serializePayment = (payment) => ({
   fechaRevision: payment.fechaRevision,
   motivoRechazo: payment.motivoRechazo,
   comprobante: payment.comprobante
-    ? { contentType: payment.comprobante.contentType, size: payment.comprobante.size }
+    ? {
+        contentType: payment.comprobante.contentType,
+        size: payment.comprobante.size,
+        disponible: payment.comprobante.disponible,
+        expiraEn: payment.comprobante.expiraEn,
+        eliminadoEn: payment.comprobante.eliminadoEn,
+      }
     : undefined,
   createdAt: payment.createdAt,
   updatedAt: payment.updatedAt,
@@ -64,6 +72,7 @@ const paymentHash = (communityId, jornadaId, data, fileHash) =>
       JSON.stringify({
         comunidad: communityId,
         jornada: jornadaId,
+        calle: data.calle,
         numeroCasa: data.numeroCasa,
         propietario: normalizeText(data.propietario).toLocaleLowerCase("es-VE"),
         referencia: data.referencia,
@@ -252,10 +261,37 @@ class BombonaService {
       throw new AppError("No hay jornadas activas para esta comunidad.", 404, "JORNADA_NO_ACTIVA");
     }
 
-    const casasRaw = await Habitante.distinct("numeroCasa", { comunidad: comunidad._id });
-    const casas = [...new Set(casasRaw.map(String).filter((casa) => /^\d{1,8}$/.test(casa)))].sort(
-      (left, right) => Number(left) - Number(right) || left.localeCompare(right),
-    );
+    const viviendasRaw = await Habitante.aggregate([
+      {
+        $match: {
+          comunidad: comunidad._id,
+          calle: { $type: "string" },
+          numeroCasa: { $regex: /^\d{1,8}$/ },
+        },
+      },
+      {
+        $project: {
+          calle: { $trim: { input: "$calle" } },
+          numeroCasa: 1,
+        },
+      },
+      { $match: { calle: { $ne: "" } } },
+      {
+        $group: {
+          _id: "$calle",
+          casas: { $addToSet: "$numeroCasa" },
+        },
+      },
+    ]);
+    const viviendas = viviendasRaw
+      .map((vivienda) => ({
+        calle: vivienda._id,
+        casas: [...new Set(vivienda.casas.map(String).filter((casa) => /^\d{1,8}$/.test(casa)))].sort(
+          (left, right) => Number(left) - Number(right) || left.localeCompare(right),
+        ),
+      }))
+      .filter((vivienda) => vivienda.casas.length > 0)
+      .sort((left, right) => left.calle.localeCompare(right.calle, "es"));
 
     return {
       comunidad: { _id: comunidad._id, nombre: comunidad.nombre },
@@ -264,14 +300,18 @@ class BombonaService {
         moneda: "VES",
         pagoMovil: jornada.pagoMovil,
       },
-      casas,
+      viviendas,
       limites: { maxPorTipo: 10, maxTotal: 20 },
     };
   }
 
   async createPublicPayment(comunidadId, data, idempotencyKey, comprobante) {
     const keyHash = hashKey(idempotencyKey);
-    const normalizedData = { ...data, propietario: normalizeText(data.propietario) };
+    const normalizedData = {
+      ...data,
+      calle: data.calle.trim(),
+      propietario: normalizeText(data.propietario),
+    };
     const quantities = {
       grande: data.bombonasGrande,
       mediana: data.bombonasMediana,
@@ -291,20 +331,74 @@ class BombonaService {
       .lean();
     if (previous) return replayExisting(previous);
 
-    const session = await mongoose.startSession();
+    const retentionDays = Number(process.env.COMPROBANTE_RETENTION_DAYS || 60);
+    if (!Number.isSafeInteger(retentionDays) || retentionDays < 1 || retentionDays > 3650) {
+      throw new AppError("COMPROBANTE_RETENTION_DAYS debe estar entre 1 y 3650.", 500, "INVALID_RETENTION_CONFIG");
+    }
+
+    const comunidadActiva = await Comunidad.findOne({ _id: comunidadId, activo: true })
+      .select("_id")
+      .lean();
+    if (!comunidadActiva) {
+      throw new AppError("No hay jornadas activas para esta comunidad.", 404, "JORNADA_NO_ACTIVA");
+    }
+
+    const jornadaPrevia = await JornadaBombona.findOne({ comunidad: comunidadId, activa: true }).lean();
+    if (!jornadaPrevia) {
+      throw new AppError("No hay jornadas activas para esta comunidad.", 404, "JORNADA_NO_ACTIVA");
+    }
+
+    const casaExiste = await Habitante.exists({
+      comunidad: comunidadId,
+      calle: normalizedData.calle,
+      numeroCasa: data.numeroCasa,
+    });
+    if (!casaExiste) {
+      throw new AppError("La combinación de calle y número de casa no pertenece a esta comunidad.", 400, "CASA_NO_ENCONTRADA");
+    }
+
+    const referenciaNormalizada = data.referencia.trim().toUpperCase();
+    const referenciaExiste = await PagoBombona.exists({
+      jornada: jornadaPrevia._id,
+      referenciaNormalizada,
+    });
+    if (referenciaExiste) {
+      throw new AppError("Esta referencia ya fue registrada para la jornada.", 409, "REFERENCIA_DUPLICADA");
+    }
+
+    // La subida remota ocurre fuera de la transacción MongoDB; si la BD aborta,
+    // se elimina solo el recurso creado por este intento.
+    const uploadedComprobante = await cloudinaryService.uploadComprobante(comprobante.buffer, {
+      comunidadId,
+      jornadaId: idOf(jornadaPrevia._id),
+      format: comprobante.format,
+    });
+    const comprobanteMetadata = {
+      ...uploadedComprobante,
+      contentType: comprobante.contentType,
+      sha256: comprobante.sha256,
+      disponible: true,
+      expiraEn: new Date(Date.now() + retentionDays * 24 * 60 * 60 * 1000),
+      eliminadoEn: null,
+    };
+
+    let session;
     try {
-      return await session.withTransaction(async () => {
+      session = await mongoose.startSession();
+      const transactionResult = await session.withTransaction(async () => {
         const inTransaction = await PagoBombona.findOne({ comunidad: comunidadId, idempotencyKeyHash: keyHash })
           .select("+requestHash")
           .session(session)
           .lean();
-        if (inTransaction) return replayExisting(inTransaction);
+        if (inTransaction) {
+          return { ...(await replayExisting(inTransaction)), cleanupUploadedAsset: true };
+        }
 
-        const comunidadActiva = await Comunidad.findOne({ _id: comunidadId, activo: true })
+        const comunidadActivaEnTransaccion = await Comunidad.findOne({ _id: comunidadId, activo: true })
           .select("_id")
           .session(session)
           .lean();
-        if (!comunidadActiva) {
+        if (!comunidadActivaEnTransaccion) {
           throw new AppError("No hay jornadas activas para esta comunidad.", 404, "JORNADA_NO_ACTIVA");
         }
 
@@ -315,13 +409,16 @@ class BombonaService {
           throw new AppError("No hay jornadas activas para esta comunidad.", 404, "JORNADA_NO_ACTIVA");
         }
 
-        const casaExiste = await Habitante.exists({ comunidad: comunidadId, numeroCasa: data.numeroCasa })
+        const casaExisteEnTransaccion = await Habitante.exists({
+          comunidad: comunidadId,
+          calle: normalizedData.calle,
+          numeroCasa: data.numeroCasa,
+        })
           .session(session);
-        if (!casaExiste) {
-          throw new AppError("El número de casa no pertenece a esta comunidad.", 400, "CASA_NO_ENCONTRADA");
+        if (!casaExisteEnTransaccion) {
+          throw new AppError("La combinación de calle y número de casa no pertenece a esta comunidad.", 400, "CASA_NO_ENCONTRADA");
         }
 
-        const referenciaNormalizada = data.referencia.trim().toUpperCase();
         const requestHash = paymentHash(comunidadId, idOf(jornada._id), normalizedData, comprobante.sha256);
         const referenciaExiste = await PagoBombona.exists({
           jornada: jornada._id,
@@ -355,6 +452,7 @@ class BombonaService {
           jornada: jornadaAdmitiendo._id,
           comunidad: comunidadId,
           codigoSeguimiento: `PAGO-${randomUUID().replaceAll("-", "").slice(0, 20).toUpperCase()}`,
+          calle: normalizedData.calle,
           numeroCasa: data.numeroCasa,
           propietario: normalizedData.propietario,
           referencia: referenciaNormalizada,
@@ -364,26 +462,59 @@ class BombonaService {
           totalCentavos,
           idempotencyKeyHash: keyHash,
           requestHash,
-          comprobante,
+          comprobante: comprobanteMetadata,
         });
         await payment.save({ session });
 
         return { pago: this._serializePublicResult(payment), replay: false };
       });
-    } catch (error) {
-      if (!isDuplicateKey(error)) throw error;
 
-      const duplicateReplay = await PagoBombona.findOne({ comunidad: comunidadId, idempotencyKeyHash: keyHash })
-        .select("+requestHash")
-        .lean();
-      if (duplicateReplay) return replayExisting(duplicateReplay);
-
-      if (error.keyPattern?.referenciaNormalizada) {
-        throw new AppError("Esta referencia ya fue registrada para la jornada.", 409, "REFERENCIA_DUPLICADA");
+      if (transactionResult.cleanupUploadedAsset) {
+        await this._cleanupUploadedComprobante(uploadedComprobante.publicId);
       }
-      throw new AppError("El pago entra en conflicto con un registro existente.", 409, "PAGO_DUPLICADO");
+      return transactionResult;
+    } catch (error) {
+      if (isDuplicateKey(error)) {
+        const duplicateReplay = await PagoBombona.findOne({ comunidad: comunidadId, idempotencyKeyHash: keyHash })
+          .select("+requestHash +comprobante.publicId")
+          .lean();
+        await this._cleanupUploadedComprobante(uploadedComprobante.publicId);
+        if (duplicateReplay) return replayExisting(duplicateReplay);
+
+        if (error.keyPattern?.referenciaNormalizada) {
+          throw new AppError("Esta referencia ya fue registrada para la jornada.", 409, "REFERENCIA_DUPLICADA");
+        }
+        throw new AppError("El pago entra en conflicto con un registro existente.", 409, "PAGO_DUPLICADO");
+      }
+
+      if (error.hasErrorLabel?.("UnknownTransactionCommitResult")) {
+        const possiblyCommitted = await PagoBombona.findOne({ comunidad: comunidadId, idempotencyKeyHash: keyHash })
+          .select("+requestHash +comprobante.publicId")
+          .lean()
+          .catch(() => null);
+        if (possiblyCommitted) {
+          if (possiblyCommitted.comprobante?.publicId !== uploadedComprobante.publicId) {
+            await this._cleanupUploadedComprobante(uploadedComprobante.publicId);
+          }
+          return replayExisting(possiblyCommitted);
+        }
+        // El commit pudo completarse aunque la respuesta se perdiera: no borrar
+        // el recurso hasta que la siguiente repetición resuelva la idempotencia.
+        throw new AppError("No se pudo confirmar el pago. Reintente con la misma Idempotency-Key.", 503, "PAYMENT_COMMIT_UNCONFIRMED");
+      }
+
+      await this._cleanupUploadedComprobante(uploadedComprobante.publicId);
+      throw error;
     } finally {
-      await session.endSession();
+      if (session) await session.endSession().catch(() => {});
+    }
+  }
+
+  async _cleanupUploadedComprobante(publicId) {
+    try {
+      await cloudinaryService.deleteComprobante(publicId);
+    } catch (error) {
+      console.error("No se pudo revertir un comprobante subido.", { code: error.code });
     }
   }
 
@@ -416,6 +547,7 @@ class BombonaService {
         { referenciaNormalizada: safeSearch },
         { codigoSeguimiento: safeSearch },
         { propietario: safeSearch },
+        { calle: safeSearch },
         { numeroCasa: safeSearch },
       ];
     }
@@ -443,7 +575,9 @@ class BombonaService {
   async getPago(id, authenticatedUserId, includeComprobante = false) {
     const manager = await this._getManager(authenticatedUserId);
     let query = PagoBombona.findById(id);
-    if (includeComprobante) query = query.select("+comprobante.contenido");
+    if (includeComprobante) {
+      query = query.select("+comprobante.publicId +comprobante.format +comprobante.disponible +comprobante.expiraEn");
+    }
     const payment = await query.lean();
     if (!payment) throw new AppError("Pago no encontrado.", 404, "PAGO_NOT_FOUND");
     this._assertCommunityScope(payment, manager);
@@ -456,15 +590,17 @@ class BombonaService {
 
   async getComprobante(id, authenticatedUserId) {
     const payment = await this.getPago(id, authenticatedUserId, true);
-    if (!payment.comprobante?.contenido) {
+    if (
+      !payment.comprobante?.disponible ||
+      !payment.comprobante?.publicId ||
+      payment.comprobante.expiraEn <= new Date()
+    ) {
       throw new AppError("Comprobante no disponible.", 404, "COMPROBANTE_NOT_FOUND");
     }
-    return {
-      contenido: payment.comprobante.contenido,
-      contentType: payment.comprobante.contentType,
-      size: payment.comprobante.size,
-      codigoSeguimiento: payment.codigoSeguimiento,
-    };
+    return cloudinaryService.generatePrivateDownloadUrl({
+      publicId: payment.comprobante.publicId,
+      format: payment.comprobante.format,
+    });
   }
 
   async reviewPago(id, data, authenticatedUserId) {

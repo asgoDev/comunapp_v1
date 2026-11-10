@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-11-09 — Integración pública de Bombonas
+
+- **Objetivo:** conectar la vista pública con el API de Bombonas, actualizarla al contrato calle+casa y optimizar comprobantes localmente sin guardar PII ni tokens en almacenamiento persistente.
+- **Archivos:** `frontend/src/pages/Publico/PagoBombonasPage.jsx`; `frontend/src/services/publicApi.js`; `frontend/src/services/bombonaPublicaService.js`; `frontend/src/hooks/useBombonaPublicaQueries.js`; `frontend/src/utils/{bombonaImage,bombonaErrors,idempotencyKey,routeAccess}.js`; `frontend/src/validations/pagoBombonas.js`; `frontend/src/App.jsx`; `frontend/.env.example`; `frontend/test/bombonaPublica.test.js`.
+- **Cambios:**
+  - Ruta pública consulta jornada y viviendas reales; bootstrap y chequeos de auth se omiten solo en `/publico/*`.
+  - Selección dinámica calle→casa; precios/Pago Móvil desde API; errores para jornada cerrada, enlace inválido, comunidad sin viviendas y fallos de red/Cloudinary.
+  - Cliente público aislado del axios autenticado; envío multipart con UUID v4 `Idempotency-Key`, sin precios, total ni credenciales.
+  - JPG/PNG únicamente; Canvas recodifica a JPEG con calidad/dimensión configurables, límite de salida 5 MiB y fallback al original compatible cuando cabe.
+  - Confirmación usa código/total devuelto por servidor; reintentos conservan clave para el mismo payload y no hay persistencia de File/PII/token.
+- **Verificación:** `frontend/pnpm test` → 18/18 OK; `frontend/pnpm build` → 505 módulos, 0 errores; `git diff --check` OK. Warnings existentes: Browserslist desactualizado y chunk principal >500 kB.
+- **Riesgos / pendientes:** R-26 y R-32 resueltos. No se probó subida real: falta configurar Cloudinary y el backend/Mongo en el entorno. R-24 antivirus, R-30 compartición temporal, R-31 compensación de assets y scheduler siguen documentados.
+
+---
+
 ## 2026-11-04 — R-03 frontend: sesión en memoria y fallback iOS
 
 - **Objetivo:** eliminar tokens de `localStorage`, usar el refresh solo por cookie `HttpOnly` y degradar a login cuando iOS cross-site bloquea la cookie.

@@ -2,7 +2,7 @@
 
 > **Memoria de largo plazo del frontend.** Registra decisiones, convenciones y trampas que un agente debe conocer antes de modificar la UI, los hooks, los formularios o la autenticación. El historial de cambios vive en [`documentacion/implementado_frontend.md`](./documentacion/implementado_frontend.md).
 >
-> Última revisión: 2026-11-04.
+> Última revisión: 2026-11-09.
 
 ---
 
@@ -210,6 +210,7 @@ const { register, handleSubmit, reset, formState: { errors } } = useForm({
 | Usuarios | `Users/UsersPage.jsx`, `UserFormPage.jsx` | CRUD con roles y asignación territorial. |
 | Auditoría | `Auditoria/AuditoriaPage.jsx` | Filtros por módulo/acción/resultado/fechas; solo admin. |
 | Perfil | `Profile/ProfilePage.jsx` | Edición de datos y cambio de contraseña. |
+| Bombonas pública | `Publico/PagoBombonasPage.jsx` | Consulta jornada pública, selección calle/casa, compresión JPG/PNG y envío idempotente sin sesión. |
 
 ### Habitantes: decisiones específicas
 
@@ -245,8 +246,15 @@ const { register, handleSubmit, reset, formState: { errors } } = useForm({
 - No uses `dangerouslySetInnerHTML` con datos del usuario.
 - No construyas URLs con input sin `encodeURIComponent` cuando corresponda.
 - No almacenes PII innecesaria en `localStorage`.
-- Mantén `withCredentials: true` y la configuración de CORS del backend.
+- Mantén `withCredentials: true` en el cliente autenticado `api.js`; el cliente `publicApi.js` no incluye Authorization ni activa credenciales cross-origin y solo llama rutas que no autentican por cookie.
 - Si se añade un flujo de pago, archivos o datos sensibles, consultar antes de elegir almacenamiento.
+- El formulario público de Bombonas usa `services/publicApi.js`, cliente aislado del `api.js` autenticado; no envía `Authorization`, no reintenta refresh y no persiste PII/token. La subida va al backend, nunca directamente a Cloudinary.
+- Comprobantes: frontend rechaza PDF/HEIC, optimiza JPG/PNG con Canvas usando calidad configurable y máximo 5 MiB de salida. Esto es UX/performance: firma, MIME, size, total y disponibilidad se validan siempre en backend.
+- Las URLs de pagos firmadas que devuelve el backend son temporales; no guardarlas en estado persistente ni `localStorage`.
+- La página pública evita `initializeAuth`/`checkAuth` en `/publico/*`; no marcar `authStore` inicializado al saltar el bootstrap, para que una navegación posterior a rutas privadas todavía pueda restaurar sesión.
+- El cliente público conserva `Idempotency-Key` en memoria mientras se reintenta el mismo payload. Cambiar el payload crea otra clave; no reintentar automáticamente el POST.
+- `bombonaImage.js` valida firma básica JPG/PNG, rechaza HEIC/PDF, aplica límites frontend y redimensiona/re-encodea en JPEG. El archivo y la vista previa solo viven en memoria/object URL; liberar URLs al cambiar/remover/desmontar. El backend mantiene todos los controles autoritativos.
+- Calidad y lado máximo se configuran con `VITE_BOMBONAS_IMAGE_QUALITY` y `VITE_BOMBONAS_IMAGE_MAX_SIDE`; son configuración pública, nunca secretos.
 - **R-03 resuelto:** access token solo en memoria y refresh solo por cookie `HttpOnly`; no reintroducir persistencia de tokens.
 - **Riesgo vigente:** `window.confirm` y mensajes de error genéricos; no exponen datos, pero no sustituyen validación/errores de campo.
 
@@ -298,6 +306,7 @@ pnpm preview
 9. **Cobertura de tests acotada** a auth; faltan componentes, hooks, formatters y lint. R-08.
 10. **No hay manejo centralizado de errores de red**; cada página decide el toast.
 11. **Documentación base:** `README.md` fue reescrito y sincronizado el 2026-11-04. Resuelto (R-21).
+12. **Bombonas pública:** backend implementado; formulario ya conectado, pero necesita variables Cloudinary en el backend para que el registro real finalice. Ver R-24/R-30.
 
 ---
 

@@ -54,7 +54,9 @@ pnpm run dev      # node --watch src/server.js
 
 Variables de entorno del backend (solo nombres):
 
-`PORT`, `NODE_ENV`, `MONGO_URI`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES`, `JWT_REFRESH_EXPIRES`, `FRONTEND_URL`, `RENDER`, `SEED_NOMBRE`, `SEED_APELLIDO`, `SEED_CEDULA`, `SEED_EMAIL`, `SEED_PASSWORD`.
+`PORT`, `NODE_ENV`, `MONGO_URI`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES`, `JWT_REFRESH_EXPIRES`, `FRONTEND_URL`, `RENDER`, `SEED_NOMBRE`, `SEED_APELLIDO`, `SEED_CEDULA`, `SEED_EMAIL`, `SEED_PASSWORD`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `CLOUDINARY_UPLOAD_TIMEOUT_MS`, `COMPROBANTE_RETENTION_DAYS`.
+
+Las credenciales Cloudinary solo se configuran en el entorno backend. Según la documentación actual, el plan Free incluye 25 créditos al mes compartidos entre almacenamiento, transformaciones y ancho de banda; revisa el consumo/cuota vigente en la [consola](https://cloudinary.com/documentation/billing_and_plans). Si faltan credenciales, la API conserva disponibilidad pero las cargas/descargas responden `503`; no hay fallback a MongoDB ni a assets públicos.
 
 > No commitees `.env`. Usa `.env.example` con placeholders.
 > El servidor usa `PORT || 3000`; el proxy de Vite apunta a `5000`. Unifica el puerto en tu `.env` o ajusta `frontend/vite.config.js`.
@@ -80,6 +82,8 @@ Variable principal: `VITE_API_URL` (URL completa del backend, incluyendo `/api`,
 | `backend/` | `pnpm run dev` | Servidor en modo watch |
 | `backend/` | `pnpm start` | Servidor en producción |
 | `backend/` | `pnpm run seed` | Crea el admin inicial |
+| `backend/` | `pnpm run bombonas:cleanup` | Simula el lote de comprobantes Cloudinary vencidos (máx. 100) |
+| `backend/` | `pnpm run bombonas:cleanup -- --apply` | Elimina en Cloudinary y marca los comprobantes del lote como no disponibles |
 | `backend/` | `pnpm test` | Pruebas backend con `node:test` |
 | `frontend/` | `pnpm dev` | Vite en desarrollo |
 | `frontend/` | `pnpm build` | Build de producción |
@@ -96,17 +100,17 @@ El lint y la cobertura amplia de frontend siguen pendientes (R-08). Ver [`docume
 backend/
 ├── src/
 │   ├── infrastructure/     # MongoDB y JWT
-│   ├── modules/            # auth, users, comunidades, habitantes, dashboard, auditoria, profile
+│   ├── modules/            # auth, users, comunidades, habitantes, dashboard, auditoria, profile, bombonas
 │   ├── shared/             # errores y middlewares
 │   └── server.js
-├── scripts/seed.js
+├── scripts/                # seed.js y limpieza explícita de comprobantes vencidos
 └── package.json
 
 frontend/
 ├── src/
 │   ├── components/         # layout y UI reutilizable
 │   ├── hooks/              # TanStack Query por módulo
-│   ├── pages/              # Login, Dashboard, Comunidades, Habitantes, Usuarios, Auditoría, Perfil
+│   ├── pages/              # Login, Dashboard, Comunidades, Habitantes, Usuarios, Auditoría, Perfil, Bombonas pública
 │   ├── services/           # axios por módulo
 │   ├── stores/             # authStore, uiStore
 │   ├── utils/              # formatters, pdfExport, venezuela.json

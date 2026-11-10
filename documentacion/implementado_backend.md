@@ -18,7 +18,24 @@
   - Limitadores específicos públicos, honeypot, CORS para `PATCH`/`Idempotency-Key`, búsqueda escapada y redacción de PII en auditoría/logs.
   - Las escrituras privadas de Bombonas exigen `Authorization: Bearer` como mitigación CSRF para este módulo.
 - **Verificación:** `backend/pnpm test` → 38/38 OK; `node --check` para todos los archivos tocados; `git diff --check` OK. No se ejecutó smoke HTTP porque requiere base Mongo configurada; no se leyó `.env`.
-- **Riesgos / operación:** R-23 resuelto; R-22/R-24/R-25 parcialmente mitigados; R-26 frontend sigue abierto; R-27/R-28/R-29 abiertos. Antes de producción confirmar Mongo replica set/sharded, store de rate limit compartido, escaneo antimalware, manejo del buffer/retención y resolver identidad de casa entre calles.
+- **Riesgos / operación en esa entrega:** R-23 resuelto; R-22/R-24/R-25 parcialmente mitigados; R-26 frontend sigue abierto; R-27/R-28/R-29 abiertos. La entrada siguiente registra la evolución de almacenamiento y resuelve R-29.
+
+---
+
+## 2026-11-06 — Bombonas: almacenamiento privado en Cloudinary y viviendas por calle
+
+- **Objetivo:** sacar los bytes de comprobantes de MongoDB, preservar descarga privada y eliminar la ambigüedad de números de casa repetidos entre calles.
+- **Archivos:** `backend/src/modules/bombonas/`; `backend/scripts/cleanup-bombona-comprobantes.js`; `backend/.env.example`; `backend/package.json`; `backend/test/bombona.*.test.js`; `backend/test/bombona.cloudinary.test.js`; `backend_api_guide.md`; `PROJECT_CONTEXT.md`; `conocimiento_back.md`; `README.md`; `MEMORY.md`; `documentacion/riesgos_pendientes.md`.
+- **Cambios:**
+  - SDK oficial Cloudinary con subida firmada, recurso `authenticated`, `backup=false`, `noindex`, IDs aleatorios segmentados por entorno/comunidad/jornada y sin nombres de archivo.
+  - MongoDB guarda `secureUrl`, `publicId`, `assetId`, formato/tamaño/hash y vencimiento; no hay campo binario. Reintentos idempotentes evitan otra subida; abortos Mongo disparan borrado compensatorio best-effort.
+  - La descarga autorizada devuelve JSON con URL firmada de cinco minutos, `no-store` y sin incluir URL/publicId en listados.
+  - Solo JPG/JPEG/PNG son aceptados. El backend valida extensión, MIME, firma y tamaño; la compresión queda para el sprint frontend independiente.
+  - La jornada devuelve casas agrupadas por calle; el alta exige calle+número y valida la combinación dentro de la comunidad.
+  - Limpieza de vencidos a 60 días, simulación por defecto y `--apply` explícito; conserva el pago y marca el comprobante eliminado.
+- **Verificación:** `backend/pnpm test` → 44/44 OK; `node --check` en `backend/src`, scripts y pruebas; pendiente smoke HTTP y subida real porque las credenciales Cloudinary aún no se han configurado.
+- **Riesgos / operación:** R-29 resuelto; R-24/R-28 parcialmente mitigados. Sin antimalware, scheduler ni store de rate limit compartido; enlace firmado compartible 5 min; compensación Cloudinary es best-effort y puede dejar huérfano si fallan ambos servicios. Configurar `.env` de backend sin compartirlo.
+- **Pendiente de integración:** no se modificó frontend; su vista mock todavía no envía calle ni Idempotency-Key y valida PDF. Ver R-32 para el sprint frontend posterior.
 
 ---
 

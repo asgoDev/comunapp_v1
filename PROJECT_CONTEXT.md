@@ -2,7 +2,7 @@
 
 > Contexto global y sintetizado del proyecto. Debe mantenerse al día con cada cambio relevante de backend o frontend. Para detalles operativos, consultar [`AGENTS.md`](./AGENTS.md), [`conocimiento_back.md`](./conocimiento_back.md) y [`conocimiento_front.md`](./conocimiento_front.md).
 >
-> Última actualización: 2026-11-05.
+> Última actualización: 2026-11-09.
 
 ---
 
@@ -155,7 +155,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 | PATCH | `/bombonas/jornadas/:id/cerrar` | `admin`, `JEFE_COMUNIDAD` | Cerrar jornada |
 | GET | `/bombonas/pagos` | `admin`, `JEFE_COMUNIDAD` | Consultar pagos con scoping |
 | PATCH | `/bombonas/pagos/:id/revision` | `admin`, `JEFE_COMUNIDAD` | Verificar o rechazar pago |
-| GET | `/publico/bombonas/comunidades/:comunidadId/jornada-activa` | Público | Consultar precios, Pago Móvil y casas numéricas |
+| GET | `/publico/bombonas/comunidades/:comunidadId/jornada-activa` | Público | Consultar precios, Pago Móvil y casas agrupadas por calle |
 | POST | `/publico/bombonas/comunidades/:comunidadId/pagos` | Público + rate limit/idempotencia | Registrar pago y comprobante |
 
 **Nota:** [`backend_api_guide.md`](./backend_api_guide.md) fue reescrita y sincronizada el 2026-11-04; verificar siempre contra el código si hay dudas.
@@ -196,10 +196,10 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 
 1. `admin` crea jornada para una comunidad; `JEFE_COMUNIDAD` la crea solo para su comunidad, derivada de BD.
 2. Los precios se almacenan en céntimos enteros; solo se mantiene una jornada activa por comunidad.
-3. La lectura pública devuelve datos de Pago Móvil y números de casa numéricos; sin jornada activa responde `404 JORNADA_NO_ACTIVA`.
-4. El alta pública exige comprobante, referencia única por jornada y UUID `Idempotency-Key`; el servidor valida casa, jornada y archivo, y calcula el total.
-5. El alta actualiza la jornada y crea el pago dentro de una transacción MongoDB; requiere replica set o clúster sharded.
-6. Los pagos quedan `pendiente` hasta revisión de `admin` o jefe de la comunidad. Los comprobantes solo se descargan autenticado y con scoping.
+3. La lectura pública devuelve datos de Pago Móvil y casas agrupadas por calle; el alta exige calle+número. Sin jornada activa responde `404 JORNADA_NO_ACTIVA`.
+4. El alta pública exige JPG/PNG, referencia única por jornada y UUID `Idempotency-Key`; el backend valida firma/tamaño, calcula el total y sube el comprobante mediante SDK firmado a Cloudinary como `authenticated`.
+5. MongoDB guarda `secureUrl`, `publicId` y metadatos, nunca bytes. El alta actualiza jornada y pago en una transacción MongoDB; requiere replica set o clúster sharded.
+6. La descarga valida scoping y devuelve URL Cloudinary firmada por cinco minutos. El job a 60 días es simulación por defecto; requiere `--apply` y scheduler externo para borrar recursos.
 
 ---
 
@@ -221,7 +221,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 | `/habitantes/carga-masiva` | Carga masiva | `admin` |
 | `/auditoria` | Auditoría | `admin` |
 | `/perfil` | Perfil | Todos |
-| `/publico/pago-bombonas/:comunidadId` | Formulario público de prueba de pagos de bombonas | Público |
+| `/publico/pago-bombonas/:comunidadId` | Formulario público conectado a la jornada de bombonas | Público |
 
 `ProtectedRoute` solo valida autenticación; cada página valida el rol.
 
@@ -229,7 +229,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 
 ## 8. Entorno y operación
 
-- Backend: `backend/.env` (no versionado) con `PORT`, `NODE_ENV`, `MONGO_URI`, secretos JWT, `FRONTEND_URL`, `SEED_*`.
+- Backend: `backend/.env` (no versionado) con `PORT`, `NODE_ENV`, `MONGO_URI`, secretos JWT, `FRONTEND_URL`, `SEED_*` y credenciales Cloudinary (`CLOUDINARY_*`).
 - Frontend: `frontend/.env` con `VITE_API_URL` (solo producción; en desarrollo se usa el proxy de Vite).
 - Proxy de Vite: `/api` → `http://localhost:5000` (el backend usa `PORT || 3000`; verificar).
 - Comandos:
@@ -241,7 +241,7 @@ Base: `/api`. La URL exacta depende de `VITE_API_URL` / proxy de Vite y del `POR
 
 ## 9. Estado actual y límites
 
-- Módulos funcionales: auth, usuarios, comunidades, habitantes (incluida carga masiva y PDF), dashboard, auditoría, perfil y bombonas. La vista frontend de bombonas aún usa mocks y requiere un sprint frontend independiente para consumir esta API.
+- Módulos funcionales: auth, usuarios, comunidades, habitantes (incluida carga masiva y PDF), dashboard, auditoría, perfil y bombonas. La ruta pública de bombonas ya consulta el backend y envía pagos; el registro Cloudinary requiere configurar credenciales en el backend. La compresión de imágenes ocurre en el navegador; el backend sigue siendo autoritativo.
 - La estética usa Tailwind con tokens CSS y tres temas.
 - Existe una vista pública frontend de demostración para registrar solicitudes de bombonas. Actualmente usa comunidades, casas y precios mock, calcula el total localmente y no realiza peticiones al backend.
 - Hay deudas de seguridad y documentación registradas en [`documentacion/riesgos_pendientes.md`](./documentacion/riesgos_pendientes.md) y resumidas en [`MEMORY.md`](./MEMORY.md). Las principales: CSRF, regex sin escapar y cobertura de tests incompleta. R-01 (scoping de comunidades), R-02 (rotación de refresh) y R-03 (tokens fuera de `localStorage`) quedaron resueltos el 2026-11-04.

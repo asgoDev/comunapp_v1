@@ -7,6 +7,7 @@ import User from "../src/modules/users/user.model.js";
 import JornadaBombona from "../src/modules/bombonas/jornadaBombona.model.js";
 import PagoBombona from "../src/modules/bombonas/pagoBombona.model.js";
 import bombonaService from "../src/modules/bombonas/bombona.service.js";
+import cloudinaryService from "../src/modules/bombonas/cloudinary.service.js";
 
 const COMUNIDAD_PROPIA = "64f0c2a1b2c3d4e5f6071829";
 const COMUNIDAD_AJENA = "64f0c2a1b2c3d4e5f6071830";
@@ -24,6 +25,15 @@ const queryChain = (value) => {
     lean: async () => value,
   };
   return chain;
+};
+
+const asyncQuery = (value) => {
+  const query = {
+    session: () => query,
+    then: (resolve, reject) => Promise.resolve(value).then(resolve, reject),
+    catch: (reject) => Promise.resolve(value).catch(reject),
+  };
+  return query;
 };
 
 const mockManager = (t, manager) => {
@@ -92,7 +102,7 @@ describe("BombonaService — jornadas y scoping", () => {
     assert.equal(comunidadLookup.mock.callCount(), 0);
   });
 
-  it("el listado público devuelve solo casas numéricas, únicas y ordenadas", async (t) => {
+  it("el listado público agrupa por calle y ordena casas numéricas", async (t) => {
     const comunidad = { _id: new mongoose.Types.ObjectId(COMUNIDAD_PROPIA), nombre: "Comunidad propia" };
     t.mock.method(Comunidad, "findOne", () => queryChain(comunidad));
     t.mock.method(JornadaBombona, "findOne", () =>
@@ -101,11 +111,18 @@ describe("BombonaService — jornadas y scoping", () => {
         pagoMovil: { banco: "Banesco", telefono: "0414-1234567", documento: "V-12345678", titular: "Ana Perez" },
       }),
     );
-    t.mock.method(Habitante, "distinct", async () => ["10", "2", "10", "1A", "", "003"]);
+    t.mock.method(Habitante, "aggregate", async () => [
+      { _id: "Calle 2", casas: ["10", "2", "10", "1A"] },
+      { _id: "Principal", casas: ["4", "1"] },
+      { _id: "Calle vacía", casas: ["A"] },
+    ]);
 
     const result = await bombonaService.getPublicJornada(COMUNIDAD_PROPIA);
 
-    assert.deepEqual(result.casas, ["2", "003", "10"]);
+    assert.deepEqual(result.viviendas, [
+      { calle: "Calle 2", casas: ["2", "10"] },
+      { calle: "Principal", casas: ["1", "4"] },
+    ]);
     assert.equal(result.jornada.precios.grande, 250);
     assert.equal(result.jornada.moneda, "VES");
     assert.equal("pagos" in result, false);
@@ -121,6 +138,7 @@ describe("BombonaService — jornadas y scoping", () => {
       requestHash: "",
     });
     const data = {
+      calle: "Principal",
       numeroCasa: "14",
       propietario: "Ana Perez",
       referencia: "ABC12345",
@@ -129,7 +147,7 @@ describe("BombonaService — jornadas y scoping", () => {
       bombonasPequena: 2,
       website: "",
     };
-    const comprobante = { sha256: "a".repeat(64), contentType: "image/png", size: 8, contenido: Buffer.alloc(8) };
+    const comprobante = { sha256: "a".repeat(64), contentType: "image/png", format: "png", size: 8, buffer: Buffer.alloc(8) };
 
     // requestHash se verifica en servicio; una clave con contenido distinto falla cerrado.
     payment.requestHash = "hash-de-otra-solicitud";
@@ -157,15 +175,24 @@ describe("BombonaService — jornadas y scoping", () => {
       withTransaction: async (callback) => callback(session),
       endSession: async () => {},
     };
-    const sessionQuery = (value) => ({ session: async () => value });
-
     t.mock.method(mongoose, "startSession", async () => session);
     t.mock.method(PagoBombona, "findOne", () => queryChain(persistedPayment?.toObject() ?? null));
     t.mock.method(Comunidad, "findOne", () => queryChain({ _id: new mongoose.Types.ObjectId(COMUNIDAD_PROPIA) }));
     t.mock.method(JornadaBombona, "findOne", () => queryChain(activeJornada));
-    t.mock.method(Habitante, "exists", () => sessionQuery({ _id: new mongoose.Types.ObjectId() }));
-    t.mock.method(PagoBombona, "exists", () => sessionQuery(null));
+    t.mock.method(Habitante, "exists", () => asyncQuery({ _id: new mongoose.Types.ObjectId() }));
+    t.mock.method(PagoBombona, "exists", () => asyncQuery(null));
     t.mock.method(JornadaBombona, "findOneAndUpdate", () => queryChain(activeJornada));
+    const uploaded = {
+      secureUrl: "https://res.cloudinary.com/test/image/authenticated/example.jpg",
+      publicId: `comunapp/bombonas/test/${COMUNIDAD_PROPIA}/${JORNADA_ID}/11111111-1111-4111-8111-111111111114`,
+      assetId: "cloudinary-asset-1",
+      format: "png",
+      resourceType: "image",
+      deliveryType: "authenticated",
+      size: 9,
+    };
+    const upload = t.mock.method(cloudinaryService, "uploadComprobante", async () => uploaded);
+    t.mock.method(cloudinaryService, "deleteComprobante", async () => "ok");
     const save = t.mock.method(PagoBombona.prototype, "save", async function savePayment() {
       this.createdAt = new Date("2026-11-05T12:00:00.000Z");
       persistedPayment = this;
@@ -173,6 +200,7 @@ describe("BombonaService — jornadas y scoping", () => {
     });
 
     const data = {
+      calle: "Principal",
       numeroCasa: "14",
       propietario: "Ana   Perez",
       referencia: "abc12345",
@@ -183,9 +211,10 @@ describe("BombonaService — jornadas y scoping", () => {
     };
     const comprobante = {
       contentType: "image/png",
+      format: "png",
       size: 9,
       sha256: "a".repeat(64),
-      contenido: Buffer.from("png-falso-para-mock"),
+      buffer: Buffer.from("png-falso-para-mock"),
     };
     const idempotencyKey = "11111111-1111-4111-8111-111111111111";
 
@@ -198,8 +227,11 @@ describe("BombonaService — jornadas y scoping", () => {
     assert.equal(replay.pago.codigoSeguimiento, first.pago.codigoSeguimiento);
     assert.equal(replay.replay, true);
     assert.equal(save.mock.callCount(), 1);
+    assert.equal(upload.mock.callCount(), 1);
     assert.equal(persistedPayment.idempotencyKeyHash.length, 64);
     assert.notEqual(persistedPayment.idempotencyKeyHash, idempotencyKey);
+    assert.equal(persistedPayment.comprobante.secureUrl, uploaded.secureUrl);
+    assert.equal("contenido" in persistedPayment.comprobante, false);
   });
 
   it("rechaza una referencia usada antes de incrementar la jornada", async (t) => {
@@ -217,8 +249,8 @@ describe("BombonaService — jornadas y scoping", () => {
     t.mock.method(PagoBombona, "findOne", () => queryChain(null));
     t.mock.method(Comunidad, "findOne", () => queryChain({ _id: new mongoose.Types.ObjectId(COMUNIDAD_PROPIA) }));
     t.mock.method(JornadaBombona, "findOne", () => queryChain(activeJornada));
-    t.mock.method(Habitante, "exists", () => ({ session: async () => ({ _id: "habitante" }) }));
-    t.mock.method(PagoBombona, "exists", () => ({ session: async () => ({ _id: "pago-existente" }) }));
+    t.mock.method(Habitante, "exists", () => asyncQuery({ _id: "habitante" }));
+    t.mock.method(PagoBombona, "exists", () => asyncQuery({ _id: "pago-existente" }));
     const increment = t.mock.method(JornadaBombona, "findOneAndUpdate", () => queryChain(activeJornada));
 
     await assert.rejects(
@@ -226,6 +258,7 @@ describe("BombonaService — jornadas y scoping", () => {
         bombonaService.createPublicPayment(
           COMUNIDAD_PROPIA,
           {
+            calle: "Principal",
             numeroCasa: "14",
             propietario: "Ana Perez",
             referencia: "ABC12345",
@@ -234,11 +267,66 @@ describe("BombonaService — jornadas y scoping", () => {
             bombonasPequena: 0,
           },
           "11111111-1111-4111-8111-111111111112",
-          { sha256: "b".repeat(64), contentType: "image/png", size: 9, contenido: Buffer.alloc(9) },
+          { sha256: "b".repeat(64), contentType: "image/png", format: "png", size: 9, buffer: Buffer.alloc(9) },
         ),
       (error) => error.statusCode === 409 && error.code === "REFERENCIA_DUPLICADA",
     );
     assert.equal(increment.mock.callCount(), 0);
+  });
+
+  it("revierte en Cloudinary si MongoDB aborta después de subir el comprobante", async (t) => {
+    const activeJornada = {
+      _id: new mongoose.Types.ObjectId(JORNADA_ID),
+      comunidad: new mongoose.Types.ObjectId(COMUNIDAD_PROPIA),
+      activa: true,
+      preciosCentavos: { grande: 25000, mediana: 18000, pequena: 12000 },
+    };
+    const session = {
+      withTransaction: async (callback) => callback(session),
+      endSession: async () => {},
+    };
+    const uploaded = {
+      secureUrl: "https://res.cloudinary.com/test/image/authenticated/comprobante.jpg",
+      publicId: `comunapp/bombonas/test/${COMUNIDAD_PROPIA}/${JORNADA_ID}/11111111-1111-4111-8111-111111111115`,
+      assetId: "cloudinary-asset-2",
+      format: "jpg",
+      resourceType: "image",
+      deliveryType: "authenticated",
+      size: 10,
+    };
+
+    t.mock.method(mongoose, "startSession", async () => session);
+    t.mock.method(PagoBombona, "findOne", () => queryChain(null));
+    t.mock.method(Comunidad, "findOne", () => queryChain({ _id: new mongoose.Types.ObjectId(COMUNIDAD_PROPIA) }));
+    t.mock.method(JornadaBombona, "findOne", () => queryChain(activeJornada));
+    t.mock.method(Habitante, "exists", () => asyncQuery({ _id: "habitante" }));
+    t.mock.method(PagoBombona, "exists", () => asyncQuery(null));
+    t.mock.method(cloudinaryService, "uploadComprobante", async () => uploaded);
+    const deleteUpload = t.mock.method(cloudinaryService, "deleteComprobante", async () => "ok");
+    t.mock.method(JornadaBombona, "findOneAndUpdate", () => {
+      throw new Error("MongoDB write failed");
+    });
+
+    await assert.rejects(
+      () =>
+        bombonaService.createPublicPayment(
+          COMUNIDAD_PROPIA,
+          {
+            calle: "Principal",
+            numeroCasa: "14",
+            propietario: "Ana Perez",
+            referencia: "ABC12345",
+            bombonasGrande: 1,
+            bombonasMediana: 0,
+            bombonasPequena: 0,
+          },
+          "11111111-1111-4111-8111-111111111115",
+          { sha256: "d".repeat(64), contentType: "image/jpeg", format: "jpg", size: 10, buffer: Buffer.alloc(10) },
+        ),
+      /MongoDB write failed/,
+    );
+    assert.equal(deleteUpload.mock.callCount(), 1);
+    assert.equal(deleteUpload.mock.calls[0].arguments[0], uploaded.publicId);
   });
 
   it("no admite nuevos pagos si la comunidad está inactiva", async (t) => {
@@ -256,6 +344,7 @@ describe("BombonaService — jornadas y scoping", () => {
         bombonaService.createPublicPayment(
           COMUNIDAD_PROPIA,
           {
+            calle: "Principal",
             numeroCasa: "14",
             propietario: "Ana Perez",
             referencia: "ABC12345",
@@ -264,7 +353,7 @@ describe("BombonaService — jornadas y scoping", () => {
             bombonasPequena: 0,
           },
           "11111111-1111-4111-8111-111111111113",
-          { sha256: "c".repeat(64), contentType: "image/png", size: 9, contenido: Buffer.alloc(9) },
+          { sha256: "c".repeat(64), contentType: "image/png", format: "png", size: 9, buffer: Buffer.alloc(9) },
         ),
       (error) => error.statusCode === 404 && error.code === "JORNADA_NO_ACTIVA",
     );
@@ -304,5 +393,30 @@ describe("BombonaService — jornadas y scoping", () => {
       () => bombonaService.getPagoDetail(JORNADA_ID, ADMIN_ID),
       (error) => error.statusCode === 403 && error.code === "FORBIDDEN",
     );
+  });
+
+  it("genera una URL firmada solo después de aplicar scoping sobre el comprobante", async (t) => {
+    mockManager(t, managerAdmin);
+    const publicId = `comunapp/bombonas/test/${COMUNIDAD_PROPIA}/${JORNADA_ID}/11111111-1111-4111-8111-111111111116`;
+    t.mock.method(PagoBombona, "findById", () => queryChain({
+      _id: new mongoose.Types.ObjectId(JORNADA_ID),
+      comunidad: new mongoose.Types.ObjectId(COMUNIDAD_PROPIA),
+      comprobante: {
+        disponible: true,
+        publicId,
+        format: "jpg",
+        expiraEn: new Date(Date.now() + 60_000),
+      },
+    }));
+    const signedUrl = t.mock.method(cloudinaryService, "generatePrivateDownloadUrl", async () => ({
+      url: "https://api.cloudinary.com/v1_1/cloud-test/image/download?signed=true",
+      expiresAt: new Date(Date.now() + 300_000),
+    }));
+
+    const result = await bombonaService.getComprobante(JORNADA_ID, ADMIN_ID);
+
+    assert.match(result.url, /^https:\/\/api\.cloudinary\.com\//);
+    assert.equal(signedUrl.mock.calls[0].arguments[0].publicId, publicId);
+    assert.equal(signedUrl.mock.calls[0].arguments[0].format, "jpg");
   });
 });

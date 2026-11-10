@@ -2,7 +2,7 @@
 
 > **Contrato HTTP del backend.** La fuente de verdad es `backend/src/`; si esta guía y el código discrepan, prevalece el código y se corrige la guía.
 >
-> **Última actualización:** 2026-11-05.
+> **Última actualización:** 2026-11-06.
 > **Base URL:** `http://localhost:5000/api` según la convención del proxy de Vite. El servidor usa `PORT || 3000`; verifica el `.env` local. En producción, la URL la define `VITE_API_URL`.
 
 ---
@@ -806,14 +806,15 @@ No requiere autenticación. Devuelve `Cache-Control: no-store` y no expone habit
       "titular": "Ana Perez"
     }
   },
-  "casas": ["1", "2", "10"],
+  "viviendas": [
+    { "calle": "Principal", "casas": ["1", "2", "10"] },
+    { "calle": "Calle 1", "casas": ["1", "4"] }
+  ],
   "limites": { "maxPorTipo": 10, "maxTotal": 20 }
 }
 ```
 
-`casas` contiene números únicos de 1–8 dígitos existentes en `Habitante` para esa comunidad, ordenados numéricamente. Comunidad inexistente/inactiva o sin jornada activa devuelve `404 JORNADA_NO_ACTIVA` con mensaje genérico.
-
-> **Integridad pendiente (R-29):** el modelo territorial agrupa por calle y número, pero esta API solo publica el número por el contrato solicitado. Si una comunidad repite números entre calles, no se identifica una vivienda única; acordar `calle` o ID de casa antes de integrar frontend/producción.
+`viviendas` agrupa por calle; cada lista contiene números únicos de 1–8 dígitos existentes en `Habitante`, ordenados numéricamente. Así, un mismo número puede existir en calles distintas sin ambigüedad. Comunidad inexistente/inactiva o sin jornada activa devuelve `404 JORNADA_NO_ACTIVA` con mensaje genérico.
 
 ### 10.3 Registro público de pago
 
@@ -823,16 +824,17 @@ No requiere autenticación. Content-Type: `multipart/form-data`. Header requerid
 
 | Campo multipart | Requerido | Reglas |
 |---|---:|---|
-| `numeroCasa` | Sí | 1–8 dígitos; debe existir en la comunidad |
+| `calle` | Sí | Calle devuelta por `GET jornada-activa` |
+| `numeroCasa` | Sí | 1–8 dígitos; debe existir en esa calle y comunidad |
 | `propietario` | Sí | Nombre de 2–120 caracteres |
 | `referencia` | Sí | 4–40 letras/números/guiones; se normaliza a mayúsculas |
 | `bombonasGrande` | Sí | Entero de 0 a 10 |
 | `bombonasMediana` | Sí | Entero de 0 a 10 |
 | `bombonasPequena` | Sí | Entero de 0 a 10 |
 | `website` | No | Honeypot; debe permanecer vacío |
-| `comprobante` | Sí | Un archivo JPG, PNG o PDF; máximo 5 MiB |
+| `comprobante` | Sí | Una imagen JPG/JPEG o PNG; máximo 5 MiB |
 
-Se exige al menos una bombona y máximo 20 en total. No se aceptan campos extras, precios ni total del cliente. El backend valida la firma binaria, confirma la comunidad/casa/jornada activa y calcula el total usando los precios vigentes. Guarda el snapshot de precios y el total en céntimos. La referencia solo puede usarse una vez por jornada.
+Se exige al menos una bombona y máximo 20 en total. No se aceptan campos extras, precios ni total del cliente. El backend valida firma binaria, MIME y extensión, confirma comunidad/calle/casa/jornada activa y calcula el total usando los precios vigentes. El SDK oficial sube la imagen con firma a Cloudinary como recurso `authenticated`; MongoDB almacena `secureUrl`, `publicId` y metadatos, pero nunca los bytes. Guarda snapshot de precios y total en céntimos. La referencia solo puede usarse una vez por jornada.
 
 **Respuesta 201** (reintento idéntico: `200`):
 
@@ -849,26 +851,34 @@ Se exige al menos una bombona y máximo 20 en total. No se aceptan campos extras
 }
 ```
 
-El comprobante se almacena como Buffer dentro del documento MongoDB, no se sirve como contenido estático y solo se descarga por la ruta privada. El acceso público deliberadamente revela los datos de Pago Móvil configurados en la jornada.
+El asset se organiza en Cloudinary por entorno/comunidad/jornada con `public_id` aleatorio, sin PII y con `overwrite=false`. La descarga privada valida primero el scoping y devuelve una URL `authenticated` firmada y temporal (5 minutos). La URL firmada es compartible mientras no expire. Mongo conserva el localizador, no los bytes.
+
+La retención predeterminada es 60 días (`COMPROBANTE_RETENTION_DAYS`). El script `pnpm run bombonas:cleanup` funciona en simulación por defecto; solo `--apply` elimina assets vencidos de Cloudinary y después marca el comprobante como no disponible, conservando el registro del pago. No se ejecuta automáticamente hasta configurar un scheduler de despliegue.
+
+La integración usa la subida firmada del SDK oficial y no usa `unsigned upload preset` ni funciones de token delivery de pago. El plan Cloudinary Free publica una cuota de 25 créditos al mes compartida entre almacenamiento, transformaciones y ancho de banda; una descarga privada puede consumir más ancho de banda que una entrega CDN estándar. Revisa la cuota en Cloudinary antes del despliegue.
+
+> **Escaneo de malware diferido:** el backend valida formato/firma, pero no ejecuta antivirus. Cloudinary ofrece el add-on Perception Point con moderación asíncrona; no está configurado y debe confirmarse precio/disponibilidad antes de contratarlo. Hasta entonces, mantener la política de formatos y descarga privada.
 
 ### 10.4 Consulta y revisión de pagos
 
 - `GET /bombonas/pagos?page=1&limit=20&comunidadId=<id>&jornadaId=<id>&estado=pendiente|verificado|rechazado&search=<texto>`: listado paginado; `limit` máximo 100. La búsqueda escapa regex; el jefe solo consulta su comunidad.
-- `GET /bombonas/pagos/:id`: detalle sin bytes del comprobante.
-- `GET /bombonas/pagos/:id/comprobante`: descarga autenticada como `attachment`, con `nosniff` y `no-store`; admin global o jefe de esa comunidad.
+- `GET /bombonas/pagos/:id`: detalle sin URL de Cloudinary ni identificadores internos del asset.
+- `GET /bombonas/pagos/:id/comprobante`: devuelve `{ "url": "<URL firmada>", "expiraEn": "<fecha ISO>" }` con `Cache-Control: private, no-store`; vence en 5 minutos. Solo admin global o jefe de esa comunidad. El cliente abre la URL firmada en navegación separada para evitar cargarla como XHR cross-origin.
 - `PATCH /bombonas/pagos/:id/revision`: `{ "estado": "verificado" }` o `{ "estado": "rechazado", "motivoRechazo": "La referencia no coincide con el comprobante." }`. Solo pagos `pendiente`; repetir el mismo estado final es idempotente; intentar el estado opuesto responde `409 PAGO_YA_REVISADO`.
 
 ### 10.5 Límites y errores relevantes
 
 - Límite específico: lectura pública 60/15 min por IP; registro 10/h por IP y 100/h por combinación comunidad/IP, además del limitador global de API. Respuesta `429 RATE_LIMITED`.
-- Multipart limita Content-Length a 5 MiB + 32 KiB, un archivo, siete campos y ocho partes; se valida MIME, extensión y firma JPEG/PNG/PDF. Archivo grande → `413 FILE_TOO_LARGE`; tipo/firma inválidos → `415 INVALID_FILE_TYPE` / `INVALID_FILE_SIGNATURE`.
-- `400` validación / `COMUNIDAD_REQUIRED` / `IDEMPOTENCY_KEY_REQUIRED` / `INVALID_CONTENT_LENGTH` / `CASA_NO_ENCONTRADA`.
+- Multipart limita Content-Length a 5 MiB + 32 KiB, un archivo, ocho campos y nueve partes; se valida MIME, extensión y firma JPEG/PNG. Archivo grande → `413 FILE_TOO_LARGE`; tipo/firma inválidos → `415 INVALID_FILE_TYPE` / `INVALID_FILE_SIGNATURE`.
+- `400` validación / `COMUNIDAD_REQUIRED` / `IDEMPOTENCY_KEY_REQUIRED` / `INVALID_CONTENT_LENGTH` / `FILE_REQUIRED` / `CASA_NO_ENCONTRADA`.
 - `401 BEARER_REQUIRED` si una mutación privada de Bombonas intenta autenticarse solo por cookie.
 - `403 FORBIDDEN` acceso de jefe a comunidad/pago ajeno.
 - `404 JORNADA_NO_ACTIVA`, `JORNADA_NOT_FOUND`, `PAGO_NOT_FOUND`, `COMPROBANTE_NOT_FOUND`.
+- `503 CLOUDINARY_NOT_CONFIGURED`, `CLOUDINARY_UPLOAD_FAILED`, `CLOUDINARY_DOWNLOAD_FAILED`, `CLOUDINARY_DELETE_FAILED`, `PAYMENT_COMMIT_UNCONFIRMED`.
+- `500 INVALID_RETENTION_CONFIG` si `COMPROBANTE_RETENTION_DAYS` está fuera de 1–3650.
 - `409 JORNADA_ACTIVA_EXISTENTE`, `REFERENCIA_DUPLICADA`, `PAGO_IDEMPOTENCIA_CONFLICTO`, `PAGO_YA_REVISADO`, `PAGO_DUPLICADO`.
 
-Las escrituras administrativas quedan auditadas; datos de Pago Móvil, motivos y texto libre sensible se redactan antes de persistirse en auditoría. Los envíos públicos guardados forman su propio registro operacional y no se escribe el archivo ni la clave de idempotencia en logs.
+Las escrituras administrativas quedan auditadas; datos de Pago Móvil, motivos y texto libre sensible se redactan antes de persistirse en auditoría. Los envíos públicos guardados forman su propio registro operacional y no se escribe el archivo ni la clave de idempotencia en logs. Si Cloudinary no está configurado, las operaciones de comprobante devuelven `503` sin fallback a MongoDB ni a URLs públicas.
 
 ---
 
@@ -944,7 +954,9 @@ backend/
 │   │   ├── errors/AppError.js
 │   │   └── middleware/
 │   └── server.js
-├── scripts/seed.js
+├── scripts/
+│   ├── seed.js
+│   └── cleanup-bombona-comprobantes.js
 ├── .env.example
 └── package.json
 ```

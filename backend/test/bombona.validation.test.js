@@ -11,6 +11,7 @@ import validate from "../src/shared/middleware/validate.js";
 describe("Bombonas — validación de entrada y comprobantes", () => {
   it("rechaza campos del total/precios enviados por el cliente", () => {
     const result = createPublicPaymentSchema.safeParse({
+      calle: "Principal",
       numeroCasa: "14",
       propietario: "Ana Perez",
       referencia: "ABC12345",
@@ -24,6 +25,7 @@ describe("Bombonas — validación de entrada y comprobantes", () => {
 
   it("rechaza casa alfanumérica y cantidades superiores al límite", () => {
     const invalidHouse = createPublicPaymentSchema.safeParse({
+      calle: "Principal",
       numeroCasa: "14A",
       propietario: "Ana Perez",
       referencia: "ABC12345",
@@ -32,6 +34,7 @@ describe("Bombonas — validación de entrada y comprobantes", () => {
       bombonasPequena: "0",
     });
     const invalidQuantity = createPublicPaymentSchema.safeParse({
+      calle: "Principal",
       numeroCasa: "14",
       propietario: "Ana Perez",
       referencia: "ABC12345",
@@ -77,6 +80,10 @@ describe("Bombonas — validación de entrada y comprobantes", () => {
       () => validateComprobanteSignature({ mimetype: "image/png", buffer: Buffer.from("contenido no PNG") }),
       (error) => error.code === "INVALID_FILE_SIGNATURE",
     );
+    assert.throws(
+      () => validateComprobanteSignature({ mimetype: "application/pdf", buffer: Buffer.from("%PDF-") }),
+      (error) => error.code === "INVALID_FILE_TYPE",
+    );
   });
 
   it("declara índices únicos para jornada activa, referencia e idempotencia", () => {
@@ -94,6 +101,10 @@ describe("Bombonas — validación de entrada y comprobantes", () => {
       paymentIndexes.some(([keys, options]) => keys.jornada === 1 && keys.referenciaNormalizada === 1 && options.unique),
       true,
     );
+    const comprobanteSchema = PagoBombona.schema.path("comprobante").schema;
+    assert.equal(comprobanteSchema.path("contenido"), undefined);
+    assert.equal(comprobanteSchema.path("secureUrl").options.select, false);
+    assert.equal(comprobanteSchema.path("publicId").options.select, false);
   });
 
   it("valida query sin asignar sobre el getter req.query de Express", () => {

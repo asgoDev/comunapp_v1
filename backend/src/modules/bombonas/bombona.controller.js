@@ -1,4 +1,3 @@
-import AppError from "../../shared/errors/AppError.js";
 import bombonaService from "./bombona.service.js";
 import { validateComprobanteSignature } from "./bombona.upload.js";
 
@@ -96,21 +95,10 @@ class BombonaController {
   async downloadComprobante(req, res, next) {
     try {
       const comprobante = await bombonaService.getComprobante(req.validatedParams.id, req.user.id);
-      const extension = {
-        "image/jpeg": "jpg",
-        "image/png": "png",
-        "application/pdf": "pdf",
-      }[comprobante.contentType];
-      if (!extension) throw new AppError("Tipo de comprobante no permitido.", 415, "INVALID_FILE_TYPE");
-
       res
-        .status(200)
-        .set("Content-Type", comprobante.contentType)
-        .set("Content-Length", String(comprobante.size))
-        .set("Content-Disposition", `attachment; filename="${comprobante.codigoSeguimiento}.${extension}"`)
-        .set("X-Content-Type-Options", "nosniff")
         .set("Cache-Control", "private, no-store")
-        .send(comprobante.contenido);
+        .set("Referrer-Policy", "no-referrer")
+        .json({ url: comprobante.url, expiraEn: comprobante.expiresAt });
     } catch (error) {
       next(error);
     }
