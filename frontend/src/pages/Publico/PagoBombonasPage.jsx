@@ -44,6 +44,7 @@ export default function PagoBombonasPage() {
   const {
     data,
     isLoading,
+    isError,
     error,
     refetch,
     isFetching,

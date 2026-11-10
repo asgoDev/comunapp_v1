@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-11-10 — Corrección: `isError` en la página pública de Bombonas
+
+- **Objetivo:** eliminar el `ReferenceError: isError is not defined` que impedía renderizar `PagoBombonasPage`.
+- **Archivos:** `frontend/src/pages/Publico/PagoBombonasPage.jsx`; `documentacion/implementado_frontend.md`.
+- **Cambio:** se agregó `isError` al destructuring de `useBombonaJornadaActiva`, que ya lo devuelve TanStack Query. El estado de error se usa para mostrar el panel de “No hay jornadas activas” cuando el backend responde `JORNADA_NO_ACTIVA`.
+- **Verificación:** `frontend/pnpm test` → 29/29 OK; `frontend/pnpm build` → 518 módulos, 0 errores. Persisten los warnings preexistentes de Browserslist y chunk >500 kB.
+- **Riesgos:** ninguno nuevo. El cambio es una definición faltante en el componente; no altera contratos ni scoping.
+
+---
+
 ## 2026-11-10 — Módulo Jornadas/Bombonas administrativo
 
 - **Objetivo:** crear la pantalla administrativa para gestionar la jornada activa de bombonas, consultar/filtrar sus pagos y revisar comprobantes, usando el contrato real del backend y el endpoint de calles agregado en la Fase A.
