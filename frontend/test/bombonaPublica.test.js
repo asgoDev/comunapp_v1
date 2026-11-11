@@ -11,6 +11,10 @@ let createIdempotencyKey;
 let getBombonaErrorMessage;
 let mapBombonaApiErrors;
 let isPublicRoutePath;
+let TIPOS_BOMBONA;
+let calcularResumenBombonas;
+let filtrarItemsAgregados;
+let buildPagoMovilCopyText;
 
 before(async () => {
   vite = await createServer({
@@ -26,6 +30,12 @@ before(async () => {
   createIdempotencyKey = (await vite.ssrLoadModule('/src/utils/idempotencyKey.js')).createIdempotencyKey;
   ({ getBombonaErrorMessage, mapBombonaApiErrors } = await vite.ssrLoadModule('/src/utils/bombonaErrors.js'));
   ({ isPublicRoutePath } = await vite.ssrLoadModule('/src/utils/routeAccess.js'));
+  ({ TIPOS_BOMBONA } = await vite.ssrLoadModule('/src/utils/bombonaAdmin.js'));
+  ({
+    calcularResumenBombonas,
+    filtrarItemsAgregados,
+    buildPagoMovilCopyText,
+  } = await vite.ssrLoadModule('/src/utils/bombonaPago.js'));
 });
 
 after(async () => {
@@ -138,6 +148,45 @@ describe('Bombonas público — cliente y contrato', () => {
     assert.equal(mapped[0].value.message, 'Seleccione una calle válida.');
 
     assert.match(getBombonaErrorMessage({ response: { data: { code: 'REFERENCIA_DUPLICADA' } } }), /referencia ya fue registrada/i);
+  });
+});
+
+describe('Bombonas público — resumen y copiado de pago', () => {
+  it('calcula el total y deja solo los tipos con cantidad agregada', () => {
+    const resumen = calcularResumenBombonas({
+      cantidades: { grande: 0, mediana: 2, pequena: 0 },
+      precios: { grande: 250, mediana: 300, pequena: 120 },
+      tipos: TIPOS_BOMBONA,
+    });
+    const agregados = filtrarItemsAgregados(resumen.items);
+
+    assert.equal(resumen.total, 600);
+    assert.equal(resumen.cantidadTotal, 2);
+    assert.deepEqual(agregados.map((item) => item.key), ['mediana']);
+    assert.equal(agregados[0].subtotal, 600);
+  });
+
+  it('no devuelve tipos cuando todas las cantidades están en cero', () => {
+    const resumen = calcularResumenBombonas({
+      cantidades: { grande: 0, mediana: 0, pequena: 0 },
+      precios: { grande: 250, mediana: 300, pequena: 120 },
+      tipos: TIPOS_BOMBONA,
+    });
+
+    assert.equal(resumen.total, 0);
+    assert.equal(filtrarItemsAgregados(resumen.items).length, 0);
+  });
+
+  it('construye la cadena de copiado con banco, documento, teléfono y monto plano', () => {
+    assert.equal(
+      buildPagoMovilCopyText({
+        banco: 'Banesco',
+        documento: 'V-12345678',
+        telefono: '0414-1234567',
+        total: 300,
+      }),
+      'Banesco V-12345678 0414-1234567 300.00',
+    );
   });
 });
 

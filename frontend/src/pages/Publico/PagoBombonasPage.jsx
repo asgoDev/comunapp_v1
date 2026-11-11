@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -7,8 +7,14 @@ import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import Input from '../../components/ui/Input';
 import { Logo } from '../../components/ui/Logo';
+import ResumenPagoBombonas from './components/ResumenPagoBombonas';
 import { useBombonaJornadaActiva, useCrearPagoBombona } from '../../hooks/useBombonaPublicaQueries';
 import { TIPOS_BOMBONA } from '../../utils/bombonaAdmin';
+import {
+  buildPagoMovilCopyText,
+  calcularResumenBombonas,
+  filtrarItemsAgregados,
+} from '../../utils/bombonaPago';
 import { getBombonaErrorCode, getBombonaErrorMessage, mapBombonaApiErrors } from '../../utils/bombonaErrors';
 import { comprimirComprobante } from '../../utils/bombonaImage';
 import { formatVES } from '../../utils/currency';
@@ -58,6 +64,7 @@ export default function PagoBombonasPage() {
     setValue,
     setError,
     clearErrors,
+    control,
     watch,
     formState: { errors, isSubmitting: isSubmittingForm },
   } = useForm({
@@ -66,7 +73,7 @@ export default function PagoBombonasPage() {
   });
 
   const calleSeleccionada = watch('calle');
-  const cantidades = watch('bombonas');
+  const cantidades = useWatch({ control, name: 'bombonas' });
   const comprobante = watch('comprobante');
   const fileRegistration = register('comprobante');
   const viviendas = Array.isArray(data?.viviendas) ? data.viviendas : [];
@@ -75,20 +82,20 @@ export default function PagoBombonasPage() {
   const maxPorTipo = data?.limites?.maxPorTipo ?? 10;
   const maxTotal = data?.limites?.maxTotal ?? 20;
 
-  const resumen = useMemo(() => {
-    const precios = data?.jornada?.precios || {};
-    return TIPOS_BOMBONA.reduce(
-      (acumulado, tipo) => {
-        const cantidad = Number(cantidades?.[tipo.key]) || 0;
-        const precio = Number(precios[tipo.key]) || 0;
-        acumulado.items.push({ ...tipo, cantidad, precio, subtotal: cantidad * precio });
-        acumulado.total += cantidad * precio;
-        acumulado.cantidadTotal += cantidad;
-        return acumulado;
-      },
-      { items: [], total: 0, cantidadTotal: 0 },
-    );
-  }, [cantidades, data?.jornada?.precios]);
+  const resumen = useMemo(
+    () => calcularResumenBombonas({
+      cantidades,
+      precios: data?.jornada?.precios,
+      tipos: TIPOS_BOMBONA,
+    }),
+    [
+      cantidades?.grande,
+      cantidades?.mediana,
+      cantidades?.pequena,
+      data?.jornada?.precios,
+    ],
+  );
+  const itemsAgregados = filtrarItemsAgregados(resumen.items);
 
   useEffect(() => () => {
     seleccionArchivoRef.current += 1;
@@ -162,7 +169,11 @@ export default function PagoBombonasPage() {
     const cantidad = Number.isFinite(parsed)
       ? Math.max(0, Math.min(maxDisponible, Math.floor(parsed)))
       : 0;
-    setValue(`bombonas.${tipo}`, cantidad, { shouldDirty: true, shouldValidate: true });
+    setValue(
+      'bombonas',
+      { ...(cantidades || {}), [tipo]: cantidad },
+      { shouldDirty: true, shouldValidate: true },
+    );
   };
 
   const getAttemptKey = (formData) => {
@@ -263,6 +274,23 @@ export default function PagoBombonasPage() {
     }
   };
 
+  const copiarTodoPago = async () => {
+    const pagoMovil = data?.jornada?.pagoMovil || {};
+    const texto = buildPagoMovilCopyText({
+      banco: pagoMovil.banco,
+      documento: pagoMovil.documento,
+      telefono: pagoMovil.telefono,
+      total: resumen.total,
+    });
+
+    try {
+      await navigator.clipboard.writeText(texto);
+      toast.success('Datos de pago copiados.');
+    } catch {
+      toast.error('No se pudieron copiar los datos de pago.');
+    }
+  };
+
   const startNewRequest = () => {
     reset(DEFAULT_VALUES);
     actualizarVistaPrevia('');
@@ -276,7 +304,7 @@ export default function PagoBombonasPage() {
 
   const pageFrame = (content) => (
     <div className="min-h-screen bg-background font-montserrat">
-      <header className="bg-gradient-to-r from-primary to-primary-container px-margin-mobile py-5 text-on-primary sm:px-8">
+      <header className="bg-primary px-margin-mobile py-5 text-on-primary sm:px-8">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-md">
           <Logo size="text-3xl" />
           <div className="hidden items-center gap-xs text-label-sm text-on-primary/80 sm:flex">
@@ -346,7 +374,7 @@ export default function PagoBombonasPage() {
     return pageFrame(
       <div className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center">
         <section className="w-full overflow-hidden rounded-xl border border-outline-variant/20 bg-surface-container-lowest shadow-sm">
-          <div className="bg-gradient-to-r from-primary to-primary-container p-6 text-on-primary sm:p-8">
+          <div className="bg-primary p-6 text-on-primary sm:p-8">
             <div className="flex items-center gap-md">
               <div className="rounded-full bg-on-primary/10 p-md">
                 <Icon name="check_circle" size="34px" />
@@ -474,7 +502,7 @@ export default function PagoBombonasPage() {
                   <p className="text-body-sm text-on-surface-variant">Indique la cantidad por presentación.</p>
                 </div>
               </div>
-              <div className="space-y-md py-lg sm:px-lg">
+              <div className="space-y-md py-lg px-md sm:px-lg">
                 {TIPOS_BOMBONA.map((tipo) => {
                   const cantidad = Number(cantidades?.[tipo.key]) || 0;
                   const otros = resumen.cantidadTotal - cantidad;
@@ -484,7 +512,7 @@ export default function PagoBombonasPage() {
 
                   return (
                     <div key={tipo.key}>
-                      <div className="flex items-center justify-between gap-md rounded-lg border border-outline-variant/20 bg-surface-container-low p-lg sm:p-md">
+                      <div className="flex items-center justify-between gap-md rounded-lg border border-outline-variant/20 bg-surface-container-low p-md md:p-lg">
                         <div className="flex min-w-0 items-center sm:gap-md">
                           <div className="rounded-full bg-primary/10 p-sm text-primary hidden sm:block"><Icon name={tipo.icon} size="24px" /></div>
                           <div className="min-w-0">
@@ -492,7 +520,7 @@ export default function PagoBombonasPage() {
                             <p className="text-label-sm text-on-surface-variant">{tipo.capacidad} · {formatVES(resumen.items.find((item) => item.key === tipo.key)?.precio)} c/u</p>
                           </div>
                         </div>
-                        <div className="flex shrink-0 items-center gap-xs rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-1">
+                        <div className="flex shrink-0 items-center sm:gap-xs rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-1">
                           <button type="button" title={`Disminuir ${tipo.nombre}`} aria-label={`Disminuir ${tipo.nombre}`} disabled={cantidad === 0} onClick={() => updateQuantity(tipo.key, cantidad - 1)} className="flex h-9 w-9 items-center justify-center rounded-md text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-30">
                             <Icon name="remove" size="20px" />
                           </button>
@@ -502,7 +530,7 @@ export default function PagoBombonasPage() {
                             max={maxActual}
                             inputMode="numeric"
                             aria-label={`Cantidad de ${tipo.nombre}`}
-                            className="h-9 w-12 border-0 bg-transparent text-center text-body-md font-bold text-on-surface outline-none focus:ring-2 focus:ring-primary/30"
+                            className="h-9 w-8 sm:w-12 border-0 bg-transparent text-center text-body-md font-bold text-on-surface outline-none focus:ring-2 focus:ring-primary/30"
                             {...quantityField}
                             value={cantidad}
                             onChange={(event) => updateQuantity(tipo.key, event.target.value)}
@@ -519,7 +547,19 @@ export default function PagoBombonasPage() {
                 {errors.bombonas?.message && <p className="text-label-sm text-error">{errors.bombonas.message}</p>}
               </div>
             </section>
+          </fieldset>
 
+          <div className="lg:hidden">
+            <ResumenPagoBombonas
+              pagoMovil={data.jornada.pagoMovil}
+              resumen={resumen}
+              itemsAgregados={itemsAgregados}
+              onCopiarDato={copiarDatoPago}
+              onCopiarTodo={copiarTodoPago}
+            />
+          </div>
+
+          <fieldset disabled={isSubmitting || comprimiendo} className="space-y-lg disabled:opacity-80">
             <section className="overflow-hidden rounded-xl border border-outline-variant/15 bg-surface-container-lowest shadow-sm">
               <div className="flex items-center gap-md border-b border-outline-variant/15 bg-surface-container-low p-lg">
                 <div className="rounded-lg bg-primary/10 p-sm text-primary"><Icon name="receipt_long" size="24px" /></div>
@@ -617,61 +657,14 @@ export default function PagoBombonasPage() {
           </fieldset>
         </form>
 
-        <aside className="space-y-md lg:sticky lg:top-6">
-          <section className="overflow-hidden rounded-xl border border-primary/20 bg-surface-container-lowest shadow-sm">
-            <div className="bg-gradient-to-r from-primary to-primary-container p-lg text-on-primary">
-              <div className="flex items-center justify-between gap-md">
-                <div>
-                  <p className="text-label-sm uppercase tracking-wider text-on-primary/70">Resumen</p>
-                  <h2 className="text-headline-sm font-bold">Total estimado</h2>
-                </div>
-                <Icon name="payments" size="30px" />
-              </div>
-              <p className="mt-4 text-headline-lg font-bold" aria-live="polite">{formatVES(resumen.total)}</p>
-            </div>
-            <div className="space-y-md p-lg">
-              {resumen.items.map((item) => (
-                <div key={item.key} className="flex items-center justify-between gap-md text-body-sm">
-                  <span className="text-on-surface-variant">{item.nombre}</span>
-                  <span className="font-semibold text-on-surface">{item.cantidad} × {formatVES(item.precio)}</span>
-                </div>
-              ))}
-              <div className="border-t border-outline-variant/20 pt-md text-label-lg text-on-surface-variant">
-                {resumen.cantidadTotal} {resumen.cantidadTotal === 1 ? 'bombona solicitada' : 'bombonas solicitadas'}
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-sm rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-lg">
-            <div className="flex items-center gap-xs text-primary"><Icon name="account_balance" size="20px" /><h2 className="text-label-lg font-bold">Pago móvil</h2></div>
-            <dl className="space-y-xs text-body-sm">
-              <div className="flex justify-between gap-md"><dt className="text-on-surface-variant">Banco</dt><dd className="text-right font-semibold text-on-surface">{data.jornada.pagoMovil.banco}</dd></div>
-              <div className="flex items-center justify-between gap-md">
-                <dt className="text-on-surface-variant">Teléfono</dt>
-                <dd className="flex items-center gap-xs text-right font-semibold text-on-surface">
-                  {data.jornada.pagoMovil.telefono}
-                  <button type="button" title="Copiar teléfono" aria-label="Copiar teléfono de Pago Móvil" onClick={() => copiarDatoPago(data.jornada.pagoMovil.telefono, 'Teléfono')} className="rounded p-xs text-primary hover:bg-primary/10">
-                    <Icon name="content_copy" size="16px" />
-                  </button>
-                </dd>
-              </div>
-              <div className="flex items-center justify-between gap-md">
-                <dt className="text-on-surface-variant">Documento</dt>
-                <dd className="flex items-center gap-xs text-right font-semibold text-on-surface">
-                  {data.jornada.pagoMovil.documento}
-                  <button type="button" title="Copiar documento" aria-label="Copiar documento de Pago Móvil" onClick={() => copiarDatoPago(data.jornada.pagoMovil.documento, 'Documento')} className="rounded p-xs text-primary hover:bg-primary/10">
-                    <Icon name="content_copy" size="16px" />
-                  </button>
-                </dd>
-              </div>
-              <div className="flex justify-between gap-md"><dt className="text-on-surface-variant">Titular</dt><dd className="text-right font-semibold text-on-surface">{data.jornada.pagoMovil.titular}</dd></div>
-            </dl>
-          </section>
-
-          <div className="flex gap-xs rounded-lg border border-secondary/20 bg-secondary-container/20 p-md text-label-sm text-on-surface-variant">
-            <Icon name="info" size="18px" className="shrink-0 text-secondary" />
-            <p>El total mostrado es estimado. El servidor vuelve a calcularlo con los precios vigentes de la jornada.</p>
-          </div>
+        <aside className="hidden lg:block lg:sticky lg:top-6">
+          <ResumenPagoBombonas
+            pagoMovil={data.jornada.pagoMovil}
+            resumen={resumen}
+            itemsAgregados={itemsAgregados}
+            onCopiarDato={copiarDatoPago}
+            onCopiarTodo={copiarTodoPago}
+          />
         </aside>
       </div>
     </>,

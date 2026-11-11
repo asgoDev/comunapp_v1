@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-11-11 — Pago público de Bombonas: reordenamiento responsive
+
+- **Objetivo:** en móvil, mover “Datos del pago” y el botón “Registrar solicitud” al final, después del resumen y Pago Móvil, sin alterar el layout de escritorio y sin duplicar JSX.
+- **Archivos:** `frontend/src/pages/Publico/PagoBombonasPage.jsx`; `frontend/src/pages/Publico/components/ResumenPagoBombonas.jsx` (nuevo); `documentacion/implementado_frontend.md`.
+- **Cambios:**
+  - El contenido del `aside` se extrajo al componente `ResumenPagoBombonas` (resumen, Pago Móvil, copiado y nota informativa).
+  - El componente se renderiza dos veces: dentro del `aside` de escritorio (`hidden lg:block lg:sticky lg:top-6`) y en un bloque móvil (`lg:hidden`) ubicado entre “Requerimiento de bombonas” y “Datos del pago”.
+  - El `fieldset` se dividió en dos para insertar el bloque móvil sin que los botones de copiado queden deshabilitados. Ambos fieldsets conservan `disabled={isSubmitting || comprimiendo}`.
+  - Orden móvil: vivienda → requerimiento → resumen → Pago Móvil → nota → datos del pago → botón. En `lg` se conserva el formulario a la izquierda y el resumen sticky a la derecha.
+- **Verificación:** `frontend/pnpm test` → 32/32 OK; `frontend/pnpm build` → 520 módulos, 0 errores. Persisten los warnings preexistentes de Browserslist y chunk >500 kB. Falta prueba visual manual en móvil/desktop.
+- **Riesgos:** el componente se renderiza dos veces en el DOM; la copia oculta usa `display:none`, no es accesible ni enfocable y no hay IDs duplicados. El copiado depende del permiso de portapapeles del navegador.
+
+---
+
+## 2026-11-11 — Pago público de Bombonas: cantidades, resumen y copiado
+
+- **Objetivo:** corregir el cálculo de cantidades, mostrar en el resumen solo las bombonas agregadas, añadir el copiado completo de datos de Pago Móvil y dejar la página pública sin degradados.
+- **Archivos:** `frontend/src/pages/Publico/PagoBombonasPage.jsx`; `frontend/src/utils/bombonaPago.js` (nuevo); `frontend/test/bombonaPublica.test.js`; `documentacion/implementado_frontend.md`.
+- **Cambios:**
+  - Las cantidades se leen con `useWatch` y `updateQuantity` reemplaza el objeto `bombonas` completo, evitando que `useMemo` conserve referencias viejas. El resumen usa dependencias primitivas por tipo.
+  - El resumen solo renderiza tipos con `cantidad > 0`; si no hay ninguno muestra “Aún no ha agregado bombonas” y mantiene el total en cero.
+  - Nuevo botón “Copiar todo” en Pago Móvil: copia `banco documento teléfono monto` en una sola cadena, con el monto en formato plano (`300.00`) y deshabilitado sin bombonas.
+  - Se eliminaron los tres degradados de la página pública (`header`, confirmación y resumen); ahora usan `bg-primary` plano. No se modificaron degradados de otros módulos.
+  - Helpers puros `calcularResumenBombonas`, `filtrarItemsAgregados` y `buildPagoMovilCopyText` para poder probar el cálculo y la cadena de copiado.
+- **Verificación:** `frontend/pnpm test` → 32/32 OK (3 pruebas nuevas); `frontend/pnpm build` → 519 módulos, 0 errores. Persisten los warnings preexistentes de Browserslist y chunk >500 kB. Falta prueba manual en navegador con una jornada real.
+- **Riesgos:** el total sigue siendo estimado en la UI; el backend lo recalcula con los precios vigentes. El copiado depende del permiso de portapapeles del navegador y muestra toast de error si falla.
+
+---
+
 ## 2026-11-10 — Corrección: `isError` en la página pública de Bombonas
 
 - **Objetivo:** eliminar el `ReferenceError: isError is not defined` que impedía renderizar `PagoBombonasPage`.
