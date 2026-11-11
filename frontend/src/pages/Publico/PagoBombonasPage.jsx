@@ -474,7 +474,7 @@ export default function PagoBombonasPage() {
                   <p className="text-body-sm text-on-surface-variant">Indique la cantidad por presentación.</p>
                 </div>
               </div>
-              <div className="space-y-md p-lg">
+              <div className="space-y-md py-lg sm:px-lg">
                 {TIPOS_BOMBONA.map((tipo) => {
                   const cantidad = Number(cantidades?.[tipo.key]) || 0;
                   const otros = resumen.cantidadTotal - cantidad;
@@ -484,9 +484,9 @@ export default function PagoBombonasPage() {
 
                   return (
                     <div key={tipo.key}>
-                      <div className="flex items-center justify-between gap-md rounded-lg border border-outline-variant/20 bg-surface-container-low p-md">
-                        <div className="flex min-w-0 items-center gap-md">
-                          <div className="rounded-full bg-primary/10 p-sm text-primary"><Icon name={tipo.icon} size="24px" /></div>
+                      <div className="flex items-center justify-between gap-md rounded-lg border border-outline-variant/20 bg-surface-container-low p-lg sm:p-md">
+                        <div className="flex min-w-0 items-center sm:gap-md">
+                          <div className="rounded-full bg-primary/10 p-sm text-primary hidden sm:block"><Icon name={tipo.icon} size="24px" /></div>
                           <div className="min-w-0">
                             <h3 className="truncate text-label-lg font-bold text-on-surface">{tipo.nombre}</h3>
                             <p className="text-label-sm text-on-surface-variant">{tipo.capacidad} · {formatVES(resumen.items.find((item) => item.key === tipo.key)?.precio)} c/u</p>
